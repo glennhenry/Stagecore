@@ -109,7 +109,7 @@ java -jar changeme.jar
 
 ## Docs
 
-Empty documentation template ([built with Starlight](https://starlight.astro.build/)) is available on `docs/`
+Empty documentation template ([built with Starlight](https://starlight.astro.build/), based on [sl-obsidian-starter](https://github.com/glennhenry/sl-obsidian-starter)) is available on `docs/`
 
 To run the website locally:
 
