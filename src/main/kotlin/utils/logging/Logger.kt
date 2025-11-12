@@ -211,7 +211,9 @@ object Logger {
         return formatFileName(file, line)
     }
 
-    private fun formatFileName(file: String, line: Int): String {
+    private fun formatFileName(file: String?, line: Int): String {
+        if (file == null) return "[Unknown filename]"
+
         val truncated = if (file.length > settings.fileNamePadding) {
             file
         } else {
@@ -305,7 +307,7 @@ object BypassJansi {
 data class LoggerSettings(
     val minimumLevel: LogLevel = LogLevel.Verbose,
     val colorfulLog: Boolean = true,
-    val colorizeLevelLabelOnly: Boolean = false,
+    val colorizeLevelLabelOnly: Boolean = true,
     val useForegroundColor: Boolean = false,
     val fileNamePadding: Int = 25,
     val maximumLogMessageLength: Int = 500,
