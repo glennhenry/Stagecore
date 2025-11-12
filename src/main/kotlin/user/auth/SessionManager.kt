@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import utils.functions.SystemTime
 import utils.functions.TimeProvider
 import java.util.concurrent.ConcurrentHashMap
@@ -122,7 +123,8 @@ class SessionManager(
     }
 
     fun shutdown() {
-        sessions.clear()
         cleanupJob.cancel()
+        runBlocking { cleanupJob.join() }
+        sessions.clear()
     }
 }
