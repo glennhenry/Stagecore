@@ -19,7 +19,11 @@ import io.ktor.server.request.uri
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.AttributeKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -35,6 +39,7 @@ import user.PlayerAccountRepositoryMongo
 import user.auth.DefaultAuthProvider
 import user.auth.SessionManager
 import utils.JSON
+import utils.logging.BypassJansi
 import utils.logging.Logger
 import utils.logging.LoggerSettings
 import utils.logging.toInt
@@ -172,6 +177,15 @@ suspend fun Application.module() {
     run {
         container.initializeAll()
         container.startAll()
+        container.startAcceptingCommandInputs {
+            while (isActive) {
+                val cmd = withContext(Dispatchers.IO) { readlnOrNull() } ?: break
+                val clean = cmd.trim().lowercase()
+                if (clean.isNotBlank()) {
+                    Logger.debug { "CMD received: $clean" }
+                }
+            }
+        }
     }
 
     val apiPort = config().getString("ktor.deployment.port", "8080")

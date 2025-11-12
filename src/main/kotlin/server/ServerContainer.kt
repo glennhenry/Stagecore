@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 
 /**
  * The main server that orchestrates all sub-servers.
@@ -23,6 +24,13 @@ class ServerContainer(private val servers: List<Server>, private val context: Se
 
     suspend fun startAll() {
         servers.forEach { it.start() }
+    }
+
+    /**
+     * To run `readln()` from terminal.
+     */
+    fun startAcceptingCommandInputs(blockingRead: suspend () -> Unit) {
+        coroutineScope.launch { blockingRead() }
     }
 
     suspend fun shutdownAll() {
