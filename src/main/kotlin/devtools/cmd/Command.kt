@@ -28,6 +28,11 @@ interface Command<T> {
      *
      * @param serverContext The server's state.
      * @param arg The fully deserialized and validated argument object.
+     *
+     * @return Result of command execution, which should be any of the three:
+     * - [CommandResult.Executed]
+     * - [CommandResult.ExecutionFailure]
+     * - [CommandResult.Error]
      */
-    suspend fun execute(serverContext: ServerContext, arg: T)
+    suspend fun execute(serverContext: ServerContext, arg: T): CommandResult
 }

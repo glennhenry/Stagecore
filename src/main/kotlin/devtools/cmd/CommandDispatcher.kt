@@ -66,22 +66,21 @@ class CommandDispatcher(private val serverContext: ServerContext) {
             val argsObj = JSON.json.decodeFromJsonElement(cmd.serializer, argsJson)
             Logger.info { "Received command '${cmd.name}' with args=$argsObj" }
 
-            cmd.execute(serverContext, argsObj)
-            Logger.info { "Successfully executed command '${cmd.name}'" }
+            val output = cmd.execute(serverContext, argsObj)
+            Logger.info { "Done executing command '${cmd.name}'; result='$output'" }
+            return output
         } catch (e: SerializationException) {
-            val msg = "Failed to deserialize arguments for command '${cmd.name}'. Ensure the provided argument matches the expected argument structure; error: $e"
+            val msg = "Failed to deserialize arguments for command '${cmd.name}'. Ensure the provided argument matches the expected argument structure; error: ${e.message ?: e}"
             Logger.error { msg }
             return CommandResult.SerializationFails(msg)
         } catch (e: IllegalArgumentException) {
-            val msg = "Invalid argument for command '${cmd.name}', illegal argument provided; error: $e"
+            val msg = "Invalid argument for command '${cmd.name}', illegal argument provided; error: ${e.message ?: e}"
             Logger.error { msg }
             return CommandResult.SerializationFails(msg)
         } catch (e: Exception) {
-            val msg = "Unexpected error occurred while executing command '${cmd.name}'; error: $e"
+            val msg = "Error thrown while executing the command '${cmd.name}'; error: ${e.message ?: e}"
             Logger.error { msg }
             return CommandResult.Error(msg)
         }
-
-        return CommandResult.Executed
     }
 }
