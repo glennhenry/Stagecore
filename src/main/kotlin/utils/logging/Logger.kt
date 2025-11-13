@@ -38,11 +38,11 @@ import java.util.concurrent.LinkedBlockingQueue
  * Logger.debug { "Computed value: ${'$'}{expensiveOperation()}" }
  * ```
  *
- * ### 3. Structured Logging with Presets ([LogConfig])
+ * ### 3. Structured Logging with Presets
  * Use predefined configurations for log target:
  * ```kotlin
- * Logger.error(SocketError) { "Socket failed to connect, log to socket-error.log" }
- * Logger.info(SendToClient) { "Message sent to client" }
+ * Logger.error(targets = SocketError) { "Socket failed to connect, log to socket-error.log" }
+ * Logger.info(targets = SendToClient) { "Message sent to client" }
  * ```
  *
  * ### 4. Override Truncation
@@ -67,12 +67,9 @@ import java.util.concurrent.LinkedBlockingQueue
  *
  * ## Configuration
  * - Set via `updateSettings()` with `LoggerSettings`.
- * - Extend or create new [LogConfig] presets:
+ * - Create new presets:
  *   ```kotlin
- *   val CustomAPIError = LogConfig(
- *       targets = setOf(LogTarget.Print, LogTarget.File(LogFile.APIServerError)),
- *       logFull = false
- *   )
+ *   val CustomAPIError = setOf(LogTarget.Print, LogTarget.File(LogFile.APIServerError))
  *   Logger.error(CustomAPIError) { "Custom API handler failure" }
  *   ```
  * - Extend file destinations:
@@ -99,49 +96,50 @@ object Logger {
     private val executor = Executors.newSingleThreadExecutor()
 
     fun verbose(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = verbose(tag, logFull) { msg }
-    fun verbose(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = verbose(tag, Default.copy(logFull = logFull), msg)
-    fun verbose(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Verbose, msg)
+    fun verbose(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = verbose(tag, logFull, Default, msg)
+    fun verbose(tag: String = "Unspecified", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Verbose, msg)
 
     fun debug(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = debug(tag, logFull) { msg }
-    fun debug(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = debug(tag, Default.copy(logFull = logFull), msg)
-    fun debug(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Debug, msg)
+    fun debug(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = debug(tag, logFull, Default, msg)
+    fun debug(tag: String = "Unspecified", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Debug, msg)
 
     fun info(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = info(tag, logFull) { msg }
-    fun info(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = info(tag, Default.copy(logFull = logFull), msg)
-    fun info(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Info, msg)
+    fun info(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = info(tag, logFull, Default, msg)
+    fun info(tag: String = "Unspecified", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Info, msg)
 
     fun warn(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = warn(tag, logFull) { msg }
-    fun warn(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = warn(tag, Default.copy(logFull = logFull), msg)
-    fun warn(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Warn, msg)
+    fun warn(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = warn(tag, logFull, Default, msg)
+    fun warn(tag: String = "Unspecified", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Warn, msg)
 
     fun error(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = error(tag, logFull) { msg }
-    fun error(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = error(tag, Default.copy(logFull = logFull), msg)
-    fun error(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Error, msg)
+    fun error(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = error(tag, logFull, Default, msg)
+    fun error(tag: String = "Unspecified", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Error, msg)
 
     private fun log(
         tag: String,
-        config: LogConfig,
+        logFull: Boolean,
+        targets: Set<LogTarget>,
         level: LogLevel,
         msg: () -> String,
     ) {
         if (level < settings.minimumLevel) return
 
         val rawMsg = msg().let {
-            if (it.length > settings.maximumLogMessageLength && !config.logFull) {
+            if (it.length > settings.maximumLogMessageLength && !logFull) {
                 "${it.take(settings.maximumLogMessageLength)}... [truncated]"
             } else {
                 it
             }
         }
 
-        logQueue.offer(LogCall(tag, config, level, buildSourceHint(), rawMsg))
+        logQueue.offer(LogCall(tag, level, targets, buildSourceHint(), rawMsg))
     }
 
     init {
         executor.execute {
             while (true) {
                 val call = logQueue.take()
-                call.config.targets.forEach { target ->
+                call.targets.forEach { target ->
                     val now = getTimeMillis()
                     when (target) {
                         LogTarget.Print -> {
@@ -383,97 +381,18 @@ sealed class LogTarget {
 
 enum class LogFile { ClientError, AssetsError, APIServerError, SocketServerError, DatabaseError }
 
-data class LogConfig(
-    val targets: Set<LogTarget> = setOf(LogTarget.Print),
-    val logFull: Boolean = true
-)
-
 data class LogCall(
     val tag: String,
-    val config: LogConfig,
     val level: LogLevel,
+    val targets: Set<LogTarget>,
     val source: String,
     val rawMsg: String,
 )
 
-/**
- * - Print: std output
- * - usage: basic logging
- */
-val Default = LogConfig(
-    targets = setOf(LogTarget.Print),
-    logFull = true
-)
-
-/**
- * - Print: std output
- * - usage: basic logging while emphasizing server as the source
- */
-val Server = LogConfig(
-    targets = setOf(LogTarget.Print),
-    logFull = true
-)
-
-/**
- * - Print: std output
- * - File: socket error
- * - usage: error on socket that wants to be logged into file
- */
-val SocketError = LogConfig(
-    targets = setOf(LogTarget.Print, LogTarget.File(LogFile.SocketServerError)),
-    logFull = true
-)
-
-/**
- * - Print: std output
- * - File: database error
- * - usage: error on database that wants to be logged into file
- */
-val DbError = LogConfig(
-    targets = setOf(LogTarget.Print, LogTarget.File(LogFile.DatabaseError)),
-    logFull = true
-)
-
-/**
- * - Print: std output
- * - File: Api error
- * - usage: error on API that wants to be logged into file
- */
-val ApiError = LogConfig(
-    targets = setOf(LogTarget.Print, LogTarget.File(LogFile.APIServerError)),
-    logFull = true
-)
-
-/**
- * - Print: std output
- * - File: client error
- * - usage: error on client that wants to be logged into file
- */
-val ClientError = LogConfig(
-    targets = setOf(LogTarget.Print, LogTarget.File(LogFile.ClientError)),
-    logFull = true
-)
-
-/**
- * - Print: std output
- * - File: assets error, client error
- * - usage: client assets error that wants to be logged into file
- */
-val AssetsError = LogConfig(
-    targets = setOf(
-        LogTarget.Print,
-        LogTarget.File(LogFile.AssetsError),
-        LogTarget.File(LogFile.ClientError)
-    ),
-    logFull = true
-)
-
-/**
- * - Print: std output
- * - Send to client
- * - usage: error anywhere that wants to be sent to client
- */
-val SendToClient = LogConfig(
-    targets = setOf(LogTarget.Print, LogTarget.Client),
-    logFull = true
-)
+val Default = setOf(LogTarget.Print)
+val SocketError = setOf(LogTarget.Print, LogTarget.File(LogFile.SocketServerError))
+val DbError = setOf(LogTarget.Print, LogTarget.File(LogFile.DatabaseError))
+val ApiError = setOf(LogTarget.Print, LogTarget.File(LogFile.APIServerError))
+val ClientError = setOf(LogTarget.Print, LogTarget.File(LogFile.ClientError))
+val AssetsError = setOf(LogTarget.Print, LogTarget.File(LogFile.AssetsError), LogTarget.File(LogFile.ClientError))
+val SendToClient = setOf(LogTarget.Print, LogTarget.Client)
