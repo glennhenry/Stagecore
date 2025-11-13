@@ -1,7 +1,7 @@
 package devtools.cmd
 
 import context.ServerContext
-import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.JsonObject
 import utils.JSON
 import utils.logging.Logger
@@ -43,8 +43,6 @@ class CommandDispatcher(private val serverContext: ServerContext) {
             }
         }
 
-        // validate command's arg info definition
-        command.validate()
         commands[command.name] = command
     }
 
@@ -66,20 +64,22 @@ class CommandDispatcher(private val serverContext: ServerContext) {
         try {
             val argsJson = JsonObject(request.args)
             val argsObj = JSON.json.decodeFromJsonElement(cmd.serializer, argsJson)
-
             Logger.info { "Received command '${cmd.name}' with args=$argsObj" }
 
             cmd.execute(serverContext, argsObj)
-            Logger.info { "Finished executing command '${cmd.name}'" }
+            Logger.info { "Successfully executed command '${cmd.name}'" }
+        } catch (e: SerializationException) {
+            val msg = "Failed to deserialize arguments for command '${cmd.name}'. Ensure the provided argument matches the expected argument structure; error: $e"
+            Logger.error { msg }
+            return CommandResult.SerializationFails(msg)
         } catch (e: IllegalArgumentException) {
-            Logger.error { "JSON error while executing command '${cmd.name}': $e" }
-            return CommandResult.InvalidArgument("Invalid argument for command '${cmd.name}'", e)
-        } catch (e: IllegalArgumentException) {
-            Logger.error { "Serialization error while executing command '${cmd.name}': $e" }
-            return CommandResult.InvalidArgument("Invalid JSON for command '${cmd.name}'", e)
+            val msg = "Invalid argument for command '${cmd.name}', illegal argument provided; error: $e"
+            Logger.error { msg }
+            return CommandResult.SerializationFails(msg)
         } catch (e: Exception) {
-            Logger.error { "Generic error while executing command '${cmd.name}': $e" }
-            return CommandResult.Error("Error while executing command '${cmd.name}'", e)
+            val msg = "Unexpected error occurred while executing command '${cmd.name}'; error: $e"
+            Logger.error { msg }
+            return CommandResult.Error(msg)
         }
 
         return CommandResult.Executed

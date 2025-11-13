@@ -3,18 +3,18 @@ package devtools.cmd
 /**
  * Represents the outcome of executing a server command.
  */
-sealed class CommandResult(val message: String = "", val throwable: Throwable? = null) {
+sealed class CommandResult(val message: String = "") {
     /**
      * The command executed successfully.
      */
     object Executed : CommandResult()
 
     /**
-     * The command failed to execute due to invalid arguments.
+     * The command failed to execute due to serialization failure.
      *
      * This includes incorrect types, insufficient arguments, or any illegal input in the command.
      */
-    class InvalidArgument(message: String, throwable: Throwable? = null) : CommandResult(message, throwable)
+    class SerializationFails(message: String) : CommandResult(message)
 
     /**
      * The command failed to execute because it was not found (not registered).
@@ -24,5 +24,5 @@ sealed class CommandResult(val message: String = "", val throwable: Throwable? =
     /**
      * An unexpected error occurred during command execution.
      */
-    class Error(message: String, throwable: Throwable) : CommandResult(message, throwable)
+    class Error(message: String) : CommandResult(message)
 }
