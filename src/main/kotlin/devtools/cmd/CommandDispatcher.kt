@@ -31,7 +31,8 @@ class CommandDispatcher(private val serverContext: ServerContext) {
      * @param command The command to be registered.
      * @param T The typed argument for the command.
      *
-     * @throws IllegalArgumentException If the same command name has already been registered.
+     * @throws IllegalArgumentException If the same command name has already been registered,
+     *                                  or when command implementation fail to provide correct `argInfo`.
      */
     fun <T> register(command: Command<T>) {
         when {
@@ -42,6 +43,8 @@ class CommandDispatcher(private val serverContext: ServerContext) {
             }
         }
 
+        // validate command's arg info definition
+        command.validate()
         commands[command.name] = command
     }
 

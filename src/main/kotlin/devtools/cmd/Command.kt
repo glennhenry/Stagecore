@@ -6,7 +6,8 @@ import kotlinx.serialization.KSerializer
 /**
  * Represents a server command that can be invoked to perform a specific action in server.
  *
- * Implementations can extend the base class [BaseCommand].
+ * Implementations can extend the base class [BaseCommand] to obtain the preset [validate].
+ *
  * More specifically, they must correctly define [argInfo], providing an
  * [ArgumentInfo] entry for each field in the command’s argument type [T].
  * The field names in [argInfo] must match the property names of [T].
@@ -26,6 +27,14 @@ interface Command<T> {
     val completionMessage: String
     val serializer: KSerializer<T>
     val argInfo: Map<String, ArgumentInfo>
+
+    /**
+     * Verifies that this command's `argInfo` has the correct structure.
+     *
+     * Implementation of `Command` should extend the base class [BaseCommand]
+     * instead of defining this method themself.
+     */
+    fun validate()
 
     /**
      * Execution logic of the command.
