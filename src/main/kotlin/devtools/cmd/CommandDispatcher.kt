@@ -68,8 +68,14 @@ class CommandDispatcher(private val serverContext: ServerContext) {
 
             cmd.execute(serverContext, argsObj)
             Logger.info { "Finished executing command '${cmd.name}'" }
+        } catch (e: IllegalArgumentException) {
+            Logger.error { "JSON error while executing command '${cmd.name}': $e" }
+            return CommandResult.InvalidArgument("Invalid argument for command '${cmd.name}'", e)
+        } catch (e: IllegalArgumentException) {
+            Logger.error { "Serialization error while executing command '${cmd.name}': $e" }
+            return CommandResult.InvalidArgument("Invalid JSON for command '${cmd.name}'", e)
         } catch (e: Exception) {
-            Logger.error { "Error while executing command '${cmd.name}': $e" }
+            Logger.error { "Generic error while executing command '${cmd.name}': $e" }
             return CommandResult.Error("Error while executing command '${cmd.name}'", e)
         }
 

@@ -14,7 +14,7 @@ sealed class CommandResult(val message: String = "", val throwable: Throwable? =
      *
      * This includes incorrect types, insufficient arguments, or any illegal input in the command.
      */
-    class InvalidArgument(message: String) : CommandResult(message)
+    class InvalidArgument(message: String, throwable: Throwable? = null) : CommandResult(message, throwable)
 
     /**
      * The command failed to execute because it was not found (not registered).
