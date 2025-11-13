@@ -31,8 +31,9 @@ package devtools.cmd
  * @property name The name of the argument, corresponding to a field in the argument class.
  * @property description A human-readable explanation of what this argument controls or affects.
  * @property required Whether this argument must be explicitly provided by the user.
- * @property defaultValue The default value to use if the argument is optional and omitted.
- * @property type The data type of the argument, used for UI representation.
+ * @property defaultValue The default value if the argument is optional.
+ *                        This will be ignored if the argument is required.
+ * @property type The data type of the argument.
  */
 data class ArgumentInfo(
     val name: String,
@@ -43,5 +44,5 @@ data class ArgumentInfo(
 )
 
 enum class CommandType {
-    String, Number, Boolean
+    String, Int, Double, Boolean
 }
