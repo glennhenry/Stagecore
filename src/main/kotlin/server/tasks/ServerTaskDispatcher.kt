@@ -5,7 +5,6 @@ import server.core.network.Connection
 import utils.functions.SystemTime
 import utils.functions.TimeProvider
 import utils.logging.Logger
-import utils.logging.Server
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
@@ -88,27 +87,27 @@ class ServerTaskDispatcher(private val time: TimeProvider = SystemTime) : TaskSc
 
         val job = connection.connectionScope.launch {
             try {
-                Logger.info(Server) { "[runTask Hello] Task ${taskToRun.name.code} has been scheduled to run (waiting for startDelay) for playerId=${connection.playerId}, taskId=$taskId" }
+                Logger.info("[runTask Hello]") { "Task ${taskToRun.name.code} has been scheduled to run (waiting for startDelay) for playerId=${connection.playerId}, taskId=$taskId" }
                 val scheduler = taskToRun.scheduler ?: this@ServerTaskDispatcher
                 scheduler.schedule(connection, taskId, taskToRun)
             } catch (e: CancellationException) {
                 when (e) {
                     is ForceCompleteException -> {
-                        Logger.info(Server) { "[ForceCompleteException] Task '${taskToRun.name.code}' was forced to complete for playerId=${connection.playerId}, taskId=$taskId" }
+                        Logger.info("[ForceCompleteException]") { "Task '${taskToRun.name.code}' was forced to complete for playerId=${connection.playerId}, taskId=$taskId" }
                     }
 
                     is ManualCancellationException -> {
-                        Logger.info(Server) { "[ManualCancellationException] Task '${taskToRun.name.code}' was manually cancelled for playerId=${connection.playerId}, taskId=$taskId" }
+                        Logger.info("[ManualCancellationException]") { "Task '${taskToRun.name.code}' was manually cancelled for playerId=${connection.playerId}, taskId=$taskId" }
                     }
 
                     else -> {
-                        Logger.warn(Server) { "[CancellationException] Task '${taskToRun.name.code}' was cancelled for playerId=${connection.playerId}, taskId=$taskId" }
+                        Logger.warn("[CancellationException]") { "Task '${taskToRun.name.code}' was cancelled for playerId=${connection.playerId}, taskId=$taskId" }
                     }
                 }
             } catch (e: Exception) {
-                Logger.error(Server) { "[runTask Exception] Error on task '${taskToRun.name.code}': $e for playerId=${connection.playerId}, taskId=$taskId" }
+                Logger.error("[runTask Exception]") { "Error on task '${taskToRun.name.code}': $e for playerId=${connection.playerId}, taskId=$taskId" }
             } finally {
-                Logger.info(Server) { "[runTask Goodbye] Task '${taskToRun.name.code}' no longer run for playerId=${connection.playerId}, taskId=$taskId" }
+                Logger.info("[runTask Goodbye]") { "Task '${taskToRun.name.code}' no longer run for playerId=${connection.playerId}, taskId=$taskId" }
                 runningInstances.remove(taskId)
             }
         }
@@ -141,7 +140,7 @@ class ServerTaskDispatcher(private val time: TimeProvider = SystemTime) : TaskSc
             task.onStart(connection)
             delay(config.startDelay)
 
-            Logger.info(Server) { "[runTask Working] Task '${task.name.code}' currently running for playerId=${connection.playerId}, taskId=$taskId" }
+            Logger.info("[runTask Working]") { "Task '${task.name.code}' currently running for playerId=${connection.playerId}, taskId=$taskId" }
 
             if (shouldRepeat) {
                 while (currentCoroutineContext().isActive) {
@@ -231,7 +230,7 @@ class ServerTaskDispatcher(private val time: TimeProvider = SystemTime) : TaskSc
             val instance = runningInstances.remove(taskId)
 
             if (instance == null) {
-                Logger.warn(Server) { "[stopTaskFor]: instance for taskId=$taskId is null." }
+                Logger.warn("stopTaskFor") { "Instance for taskId=$taskId is null." }
                 return
             }
 

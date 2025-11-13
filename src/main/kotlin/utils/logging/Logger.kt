@@ -15,17 +15,21 @@ import java.util.concurrent.LinkedBlockingQueue
  *
  * ## Overview
  *
- * `Logger` supports logging with multiple levels, configurable targets, and optional truncation.
- * It is self-contained and file-rotation capable, with no external dependencies.
+ * `Logger` supports logging with multiple levels, custom tags, configurable targets,
+ * and optional truncation. It is self-contained and file-rotation capable,
+ * with no external dependencies.
  *
  * ## Usage
  *
  * ### 1. Basic Logging
- * Log simple messages at any level:
+ * Log simple messages at any level with custom tag:
  * ```kotlin
- * Logger.debug("Debug message")
- * Logger.info("Informational log")
- * Logger.error("Something went wrong")
+ * const val ClassTag = "TagForSomeClass"
+ * const val GlobalTag = "AGlobalTag"
+ *
+ * Logger.debug("TAG", "Debug message")
+ * Logger.info(ClassTag, "Informational log")
+ * Logger.error(GlobalTag, "Something went wrong")
  * ```
  *
  * ### 2. Lazy Evaluation
@@ -35,20 +39,23 @@ import java.util.concurrent.LinkedBlockingQueue
  * ```
  *
  * ### 3. Structured Logging with Presets ([LogConfig])
- * Use predefined configurations for source- or severity-specific output:
+ * Use predefined configurations for log target:
  * ```kotlin
- * Logger.error(SocketError) { "Socket failed to connect" }
+ * Logger.error(SocketError) { "Socket failed to connect, log to socket-error.log" }
  * Logger.info(SendToClient) { "Message sent to client" }
  * ```
  *
  * ### 4. Override Truncation
  * By default, messages longer than 500 characters are truncated. You can override this:
  * ```kotlin
- * Logger.info(ApiError.copy(logFull = true)) { "Full JSON payload..." }
+ * Logger.info(logFull = false) { "Full JSON payload..." }
  * ```
  *
  * ## Features
  * - **Log levels:** (0) [LogLevel.Verbose], [LogLevel.Debug], [LogLevel.Info], [LogLevel.Warn], [LogLevel.Error], [LogLevel.Nothing] (6)
+ * - **Custom Tag:** Used to logically group log messages or provide extra context.
+ *                   Typically, a class, related piece of code, functions, define
+ *                   some tag constants to be used thorough all logging call in the code.
  * - **Output targets:**
  *     - [LogTarget.Print] = Standard output
  *     - [LogTarget.File] = Log file (with automatic rotation)
@@ -63,7 +70,6 @@ import java.util.concurrent.LinkedBlockingQueue
  * - Extend or create new [LogConfig] presets:
  *   ```kotlin
  *   val CustomAPIError = LogConfig(
- *       src = LogSource.API,
  *       targets = setOf(LogTarget.Print, LogTarget.File(LogFile.APIServerError)),
  *       logFull = false
  *   )
@@ -92,27 +98,28 @@ object Logger {
     private val logQueue = LinkedBlockingQueue<LogCall>()
     private val executor = Executors.newSingleThreadExecutor()
 
-    fun verbose(msg: String, logFull: Boolean = true) = verbose(logFull) { msg }
-    fun verbose(logFull: Boolean = true, msg: () -> String) = verbose(Default.copy(logFull = logFull), msg)
-    fun verbose(config: LogConfig, msg: () -> String) = log(config, LogLevel.Verbose, msg)
+    fun verbose(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = verbose(tag, logFull) { msg }
+    fun verbose(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = verbose(tag, Default.copy(logFull = logFull), msg)
+    fun verbose(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Verbose, msg)
 
-    fun debug(msg: String, logFull: Boolean = true) = debug(logFull) { msg }
-    fun debug(logFull: Boolean = true, msg: () -> String) = debug(Default.copy(logFull = logFull), msg)
-    fun debug(config: LogConfig, msg: () -> String) = log(config, LogLevel.Debug, msg)
+    fun debug(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = debug(tag, logFull) { msg }
+    fun debug(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = debug(tag, Default.copy(logFull = logFull), msg)
+    fun debug(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Debug, msg)
 
-    fun info(msg: String, logFull: Boolean = true) = info(logFull) { msg }
-    fun info(logFull: Boolean = true, msg: () -> String) = info(Default.copy(logFull = logFull), msg)
-    fun info(config: LogConfig, msg: () -> String) = log(config, LogLevel.Info, msg)
+    fun info(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = info(tag, logFull) { msg }
+    fun info(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = info(tag, Default.copy(logFull = logFull), msg)
+    fun info(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Info, msg)
 
-    fun warn(msg: String, logFull: Boolean = true) = warn(logFull) { msg }
-    fun warn(logFull: Boolean = true, msg: () -> String) = warn(Default.copy(logFull = logFull), msg)
-    fun warn(config: LogConfig, msg: () -> String) = log(config, LogLevel.Warn, msg)
+    fun warn(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = warn(tag, logFull) { msg }
+    fun warn(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = warn(tag, Default.copy(logFull = logFull), msg)
+    fun warn(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Warn, msg)
 
-    fun error(msg: String, logFull: Boolean = true) = error(logFull) { msg }
-    fun error(logFull: Boolean = true, msg: () -> String) = error(Default.copy(logFull = logFull), msg)
-    fun error(config: LogConfig, msg: () -> String) = log(config, LogLevel.Error, msg)
+    fun error(tag: String = "Unspecified", msg: String, logFull: Boolean = true) = error(tag, logFull) { msg }
+    fun error(tag: String = "Unspecified", logFull: Boolean = true, msg: () -> String) = error(tag, Default.copy(logFull = logFull), msg)
+    fun error(tag: String = "Unspecified", config: LogConfig, msg: () -> String) = log(tag, config, LogLevel.Error, msg)
 
     private fun log(
+        tag: String,
         config: LogConfig,
         level: LogLevel,
         msg: () -> String,
@@ -127,7 +134,7 @@ object Logger {
             }
         }
 
-        logQueue.offer(LogCall(config, level, buildSourceHint(), rawMsg))
+        logQueue.offer(LogCall(tag, config, level, buildSourceHint(), rawMsg))
     }
 
     init {
@@ -147,6 +154,7 @@ object Logger {
                                         timestamp = "[$timestamp]",
                                         source = call.source,
                                         level = colorizeText(call.level, "[$levelLabel]"),
+                                        tag = call.tag,
                                         rawMsg = call.rawMsg
                                     )
                                 } else {
@@ -155,6 +163,7 @@ object Logger {
                                             timestamp = "[$timestamp]",
                                             source = call.source,
                                             level = "[$levelLabel]",
+                                            tag = call.tag,
                                             rawMsg = call.rawMsg
                                         )
                                     )
@@ -167,6 +176,7 @@ object Logger {
                                         timestamp = "[$timestamp]",
                                         source = call.source,
                                         level = "[$levelLabel]",
+                                        tag = call.tag,
                                         rawMsg = call.rawMsg
                                     )
                                 )
@@ -178,6 +188,7 @@ object Logger {
                                 timestamp = "[${settings.logDateFormatter.format(now)}]",
                                 source = call.source,
                                 level = "[${call.level.label()}]",
+                                tag = call.tag,
                                 rawMsg = call.rawMsg
                             )
                             writeToFile(target.file, message)
@@ -214,21 +225,30 @@ object Logger {
     private fun formatFileName(file: String?, line: Int): String {
         if (file == null) return "[Unknown filename]"
 
-        val truncated = if (file.length > settings.fileNamePadding) {
-            file
+        if (file.length > settings.fileNamePadding) {
+            val truncated = file.take(settings.fileNamePadding - 2) + "..."
+            return "($truncated)"
         } else {
-            file.padStart(settings.fileNamePadding - line.toString().length, ' ')
+            val padded = file.padStart(settings.fileNamePadding - line.toString().length, ' ')
+            return "($padded:$line)"
         }
-
-        return "($truncated:$line)"
     }
 
     /**
-     * Build log message in the order: timestamp_source_level: rawMsg.
+     * Build log message in the order: 'timestamp source tag level: rawMsg'.
      */
-    private fun buildLogMessage(timestamp: String, source: String, level: String, rawMsg: String): String {
+    private fun buildLogMessage(timestamp: String, source: String, tag: String, level: String, rawMsg: String): String {
         val boldedLevel = AnsiColors.bold(level)
-        return "$timestamp$source$boldedLevel: $rawMsg"
+
+        val shortenedTag = if (tag.length > settings.tagPadding) {
+            val truncated = tag.take(settings.tagPadding - 2) + "..."
+            "TAG:$truncated"
+        } else {
+            val padded = tag.padEnd(settings.tagPadding, ' ')
+            "TAG:$padded"
+        }
+
+        return "$timestamp$source[$shortenedTag]$boldedLevel: $rawMsg"
     }
 
     /**
@@ -311,6 +331,7 @@ data class LoggerSettings(
     val colorizeLevelLabelOnly: Boolean = true,
     val useForegroundColor: Boolean = false,
     val fileNamePadding: Int = 25,
+    val tagPadding: Int = 20,
     val maximumLogMessageLength: Int = 500,
     val maximumLogFileSize: Int = 5 * 1024 * 1024,
     val maximumLogFileRotation: Int = 5,
@@ -368,6 +389,7 @@ data class LogConfig(
 )
 
 data class LogCall(
+    val tag: String,
     val config: LogConfig,
     val level: LogLevel,
     val source: String,

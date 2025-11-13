@@ -65,7 +65,7 @@ class GameServer(private val config: GameServerConfig) : Server {
 
     override suspend fun start() {
         if (running) {
-            Logger.warn("Game server is already running")
+            Logger.warn { "Game server is already running" }
             return
         }
         running = true

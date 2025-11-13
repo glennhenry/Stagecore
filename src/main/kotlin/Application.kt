@@ -14,13 +14,10 @@ import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
-import io.ktor.server.request.httpMethod
-import io.ktor.server.request.uri
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.AttributeKey
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -39,7 +36,6 @@ import user.PlayerAccountRepositoryMongo
 import user.auth.DefaultAuthProvider
 import user.auth.SessionManager
 import utils.JSON
-import utils.logging.BypassJansi
 import utils.logging.Logger
 import utils.logging.LoggerSettings
 import utils.logging.toInt
@@ -48,6 +44,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 
 fun main(args: Array<String>) = EngineMain.main(args)
+
+const val AppStartupTag = "AppStartup"
 
 @Suppress("unused")
 suspend fun Application.module() {
@@ -62,6 +60,7 @@ suspend fun Application.module() {
             ),
             useForegroundColor = config().getBoolean("logger.useForegroundColor", original.useForegroundColor),
             fileNamePadding = config().getInt("logger.maximumFileNameLength", original.fileNamePadding),
+            tagPadding = config().getInt("logger.tagPadding", original.tagPadding),
             maximumLogMessageLength = config().getInt(
                 "logger.maximumLogMessageLength",
                 original.maximumLogMessageLength
@@ -117,11 +116,11 @@ suspend fun Application.module() {
     /* 5. Install status pages */
     install(StatusPages) {
         exception<Throwable> { call, cause ->
-            Logger.error("Server error: ${cause.message}")
+            Logger.error(AppStartupTag, "Server error: ${cause.message}")
             call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
         }
         unhandled { call ->
-            Logger.error("Unhandled API route: ${call.request.httpMethod} ${call.request.uri}.")
+            Logger.error(AppStartupTag, "Unhandled API route: ${call.request.httpMethod} ${call.request.uri}.")
         }
     }
 
@@ -204,7 +203,7 @@ suspend fun Application.module() {
         runBlocking {
             container.shutdownAll()
         }
-        Logger.info("Server shutdown complete")
+        Logger.info(AppStartupTag, "Server shutdown complete")
     })
 }
 

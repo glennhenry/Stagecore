@@ -16,7 +16,8 @@ logger:
   colorfulLog: true
   colorizeLevelLabelOnly: true # recommend true to reduce light
   useForegroundColor: false    # recommend false if light mode
-  fileNamePadding: 25
+  fileNamePadding: 25 # empty space allocation for filename
+  tagPadding: 20      # empty space allocation for tag
   maximumLogMessageLength: 500
   maximumLogFileSize: 5
   maximumLogFileRotation: 5
