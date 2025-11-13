@@ -1,12 +1,10 @@
 package devtools
 
 import context.ServerContext
-import devtools.cmd.ArgumentInfo
-import devtools.cmd.BaseCommand
+import devtools.cmd.Command
 import devtools.cmd.CommandDispatcher
 import devtools.cmd.CommandRequest
 import devtools.cmd.CommandResult
-import devtools.cmd.CommandType
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
@@ -100,7 +98,7 @@ class CommandDispatcherTest {
 
         val input = CommandRequest("Example", obj)
 
-        assertTrue(dispatcher.handleCommand(input) is CommandResult.InvalidArgument)
+        assertTrue(dispatcher.handleCommand(input) is CommandResult.SerializationFails)
     }
 
     @Test
@@ -130,7 +128,7 @@ class CommandDispatcherTest {
 
         val input = CommandRequest("Example", obj)
 
-        assertTrue(dispatcher.handleCommand(input) is CommandResult.InvalidArgument)
+        assertTrue(dispatcher.handleCommand(input) is CommandResult.SerializationFails)
     }
 
     @Test
@@ -156,34 +154,20 @@ data class ExampleArgument(
     val field3: Boolean = false,
 )
 
-class ExampleCommand : BaseCommand<ExampleArgument>() {
+class ExampleCommand : Command<ExampleArgument> {
     override val name: String = "Example"
-    override val description: String = "This is just an example command"
+    override val shortDescription: String = "This is just an example command"
+    override val detailedDescription: String = """
+        This command is literally an example for testing. It also demonstrates
+        the proper way to define a command implementation.
+        
+        Arguments:
+        - field1: String  - Define the field 1 for demo, used to control X.
+        - field2: Int     - Used to denote Y.
+        - field3: Boolean - (optional) whether to use Z or not.
+    """.trimIndent()
     override val completionMessage: String = "Item {} successfully given to {}"
     override val serializer: KSerializer<ExampleArgument> = ExampleArgument.serializer()
-    override val argInfo: Map<String, ArgumentInfo> = mapOf(
-        "field1" to ArgumentInfo(
-            name = "field1",
-            description = "Field 1 controls something",
-            required = true,
-            defaultValue = null,
-            type = CommandType.String
-        ),
-        "field2" to ArgumentInfo(
-            name = "field2",
-            description = "Field 2 controls something",
-            required = true,
-            defaultValue = null,
-            type = CommandType.Int
-        ),
-        "field3" to ArgumentInfo(
-            name = "field3",
-            description = "Field 3 controls something",
-            required = false,
-            defaultValue = "false",
-            type = CommandType.Boolean
-        ),
-    )
 
     override suspend fun execute(serverContext: ServerContext, arg: ExampleArgument) {
         if (arg.field2 == 1) {
