@@ -227,7 +227,8 @@ object Logger {
      * Build log message in the order: timestamp_source_level: rawMsg.
      */
     private fun buildLogMessage(timestamp: String, source: String, level: String, rawMsg: String): String {
-        return "$timestamp$source$level: $rawMsg"
+        val boldedLevel = AnsiColors.bold(level)
+        return "$timestamp$source$boldedLevel: $rawMsg"
     }
 
     /**

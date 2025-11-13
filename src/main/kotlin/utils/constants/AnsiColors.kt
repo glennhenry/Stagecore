@@ -27,4 +27,5 @@ object AnsiColors {
 
     fun fg(n: Int) = "\u001B[38;5;${n}m"
     fun bg(n: Int) = "\u001B[48;5;${n}m"
+    fun bold(text: String) = "\u001B[1m$text\u001B[22m"
 }
