@@ -60,12 +60,12 @@ class CommandDispatcher(private val serverContext: ServerContext) {
             ?: return CommandResult.CommandNotFound("Failed to execute command '${request.name}': Command is unknown."))
                 as Command<Any?>
 
-        val argsJson = JsonObject(request.args)
-        val argsObj = JSON.json.decodeFromJsonElement(cmd.serializer, argsJson)
-
-        Logger.info { "Received command '${cmd.name}' with args=$argsObj" }
-
         try {
+            val argsJson = JsonObject(request.args)
+            val argsObj = JSON.json.decodeFromJsonElement(cmd.serializer, argsJson)
+
+            Logger.info { "Received command '${cmd.name}' with args=$argsObj" }
+
             cmd.execute(serverContext, argsObj)
             Logger.info { "Finished executing command '${cmd.name}'" }
         } catch (e: Exception) {
