@@ -188,15 +188,17 @@ data class ExampleArgument(
 
 class ExampleCommand : Command<ExampleArgument> {
     override val name: String = "Example"
-    override val shortDescription: String = "This is just an example command"
+    override val shortDescription: String = "This is an example command"
     override val detailedDescription: String = """
-        This command is literally an example for testing. It also demonstrates
-        the proper way to define a command implementation.
-        
-        Arguments:
-        - field1: String  - Define the field 1 for demo, used to control X.
-        - field2: Int     - Used to denote Y.
-        - field3: Boolean - (optional) whether to use Z or not.
+This is an example command.
+
+This command exists purely for demonstration and testing purposes. It also serves as a reference for how to properly implement a command. This message is also used as `detailedDescription` in the code.
+
+Arguments:
+
+- field1: String - Defines the first field used to control behavior X.
+- field2: Int - Represents parameter Y for demonstration.
+- field3: Boolean - (optional) Determines whether to enable feature Z.
     """.trimIndent()
     override val completionMessage: String = "Item {} successfully given to {}"
     override val serializer: KSerializer<ExampleArgument> = ExampleArgument.serializer()

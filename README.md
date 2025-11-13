@@ -91,21 +91,17 @@ description: example
 3. The slug is produced from the directory structure. For instance, this page is named `example.md` and is under the
    `folderB` within the `folderA`.
 4. Next, add the page to the sidebar.
-    1. Begin by editing the `astro.config.mjs`.
-    2. Follow the existing sidebar link
-       format. [More details on official documentation](https://starlight.astro.build/guides/sidebar/).
-
-## Commands
-
-The server supports command-line input directly from the terminal it’s running in.
-They are used to control and monitor the server.
-A list of available commands and their usage can be found in `Commands.md`.
+   1. Begin by editing the `astro.config.mjs`.
+   2. Follow the existing sidebar link
+      format. [More details on official documentation](https://starlight.astro.build/guides/sidebar/).
 
 ## DevTools
 
-A web-based developer toolkit that provides a user interface for monitoring and interacting with the server.
+An external web-based developer toolkit that provides a user interface for monitoring and interacting with the server.
 
-TBA
+- Commands: The server offers users the ability to send commands to the server for monitoring and to control its behavior.
+
+See `Devtools.md` for details.
 
 ## Structure
 
@@ -121,11 +117,14 @@ TBA
 │   ├── context/                # States model (server, player) and tracker
 │   ├── core/                   # Core game logic (domain repository and service)
 │   │   ├── data/               # Global game data, game definitions, and parser
-│   │   ├── model/              # Game data models
+│   │   └── model/              # Game data models
 │   ├── data/                   # Database implementation
-│   │   ├── collection/         # Database collection models
-│   │   security                # Security functionality
-│   │   ├── validation/         # Validation system
+│   │   └── collection/         # Database collection models
+│   ├── devtools/               # Developer toolkits
+│   │   └── cmd/                # Server command system
+│   │       └── impl/           # Command implementation
+│   ├── security                # Security functionality
+│   │   └── validation/         # Validation system
 │   ├── server/                 # Game servers and implementation
 │   │   ├── core/               # Core server definitions
 │   │   ├── handler/            # Message handlers
@@ -144,10 +143,11 @@ TBA
 ├── src/main/resources/
 │   ├── application.yaml        # Server configuration
 │   └── logback.xml             # Logging configuration (not much used)
+├── src/main/test/              # Code tests
 ├── static/                     # Game assets
 ├── docs/                       # Documentation
 │   └── src/content/docs/       # Markdown documentation
-├── deploy/                    # Build output
+├── deploy/                     # Build output
 ├── .logs/                      # Logs file
 ├── .telemetry/                 # Telemetry file
 └── dev.bat/dev.sh              # Script to run development server
@@ -159,10 +159,9 @@ TBA
 
 ### TODO
 
-- to fix: command input often get cuts off because of logging, though the input buffer still work.
 - dev tools (from route /devtools)
   - basic authentication with ephemeral token; token refresh from local command line
   - advanced logger display
   - server monitoring
-  - ability to execute command from route in /cmd websocket instead of local command line
+  - ability to execute command from API
 - rate limiter, flood anticipator
