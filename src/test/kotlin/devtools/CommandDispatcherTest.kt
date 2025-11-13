@@ -6,6 +6,7 @@ import devtools.cmd.CommandDispatcher
 import devtools.cmd.CommandRequest
 import devtools.cmd.CommandResult
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -131,6 +132,22 @@ class CommandDispatcherTest {
         assertTrue(dispatcher.handleCommand(input) is CommandResult.SerializationFails)
     }
 
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test
+    fun `CommandDispatcher execute failed on null value for non-null field`() = runTest {
+        val dispatcher = CommandDispatcher(context)
+        dispatcher.register(ExampleCommand())
+
+        val obj = buildJsonObject {
+            put("field1", JsonPrimitive(null))
+            put("field2", JsonPrimitive(123))
+        }
+
+        val input = CommandRequest("Example", obj)
+
+        assertTrue(dispatcher.handleCommand(input) is CommandResult.SerializationFails)
+    }
+
     @Test
     fun `CommandDispatcher execute failed when command execution throws`() = runTest {
         val dispatcher = CommandDispatcher(context)
@@ -144,6 +161,21 @@ class CommandDispatcherTest {
         val input = CommandRequest("Example", obj)
 
         assertTrue(dispatcher.handleCommand(input) is CommandResult.Error)
+    }
+
+    @Test
+    fun `CommandDispatcher execute failed when command has internal logic or domain error`() = runTest {
+        val dispatcher = CommandDispatcher(context)
+        dispatcher.register(ExampleCommand())
+
+        val obj = buildJsonObject {
+            put("field1", JsonPrimitive("pid123"))
+            put("field2", JsonPrimitive(1002))
+        }
+
+        val input = CommandRequest("Example", obj)
+
+        assertTrue(dispatcher.handleCommand(input) is CommandResult.ExecutionFailure)
     }
 }
 
@@ -169,10 +201,15 @@ class ExampleCommand : Command<ExampleArgument> {
     override val completionMessage: String = "Item {} successfully given to {}"
     override val serializer: KSerializer<ExampleArgument> = ExampleArgument.serializer()
 
-    override suspend fun execute(serverContext: ServerContext, arg: ExampleArgument) {
+    override suspend fun execute(serverContext: ServerContext, arg: ExampleArgument): CommandResult {
         if (arg.field2 == 1) {
             throw Exception()
         }
-        println("Executed with arg=$arg")
+        if (arg.field2 > 1000) {
+            return CommandResult.ExecutionFailure("field2 greater than 1000")
+        }
+
+        println("Executed success with arg=$arg")
+        return CommandResult.Executed
     }
 }
