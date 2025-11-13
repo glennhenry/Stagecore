@@ -2,7 +2,7 @@ package devtools
 
 import context.ServerContext
 import devtools.cmd.ArgumentInfo
-import devtools.cmd.Command
+import devtools.cmd.BaseCommand
 import devtools.cmd.CommandDispatcher
 import devtools.cmd.CommandRequest
 import devtools.cmd.CommandResult
@@ -156,7 +156,7 @@ data class ExampleArgument(
     val field3: Boolean = false,
 )
 
-class ExampleCommand : Command<ExampleArgument> {
+class ExampleCommand : BaseCommand<ExampleArgument>() {
     override val name: String = "Example"
     override val description: String = "This is just an example command"
     override val completionMessage: String = "Item {} successfully given to {}"
