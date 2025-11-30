@@ -47,9 +47,9 @@ class ValidationScheme<T>(private val schemeName: String, private val factory: (
      * If it fails, the associated [FailStrategy] and reason will be used
      * when reporting or handling the failure.
      *
-     * @param stageName Descriptive name for this stage (e.g., `"XP Check"`).
+     * @param stageName Short descriptive title for this stage (e.g., `"XP Check"`).
      * @param failStrategy Optional strategy that determines how failure is handled.
-     * @param failReason Optional reason string describing why the validation exists.
+     * @param failReason Optional reason string describing why the validation is required.
      * @param predicate The actual validation check to run.
      */
     fun require(

@@ -32,16 +32,21 @@ class TestValidationScheme {
     }
 
     @Test
-    fun `test validation fail at non-last stage with specified strategy`() {
+    fun `test validation fail at non-last stage with specified strategy and message`() {
         val result = ValidationScheme("example") { "Hello Ktor" }
             .require("Contains space") { contains(" ") }
-            .require("Contains 'World' FAILED", failStrategy = FailStrategy.Disconnect) { contains("World") }
+            .require(
+                "Contains 'World' FAILED",
+                failStrategy = FailStrategy.Disconnect,
+                failReason = "The input string does not contain 'World'"
+            ) { contains("World")}
             .require("Contains 'Ktor'") { contains("Ktor") }
             .validate()
 
         assertIs<ValidationResult.Failed>(result)
         assertNotNull(result.failStrategy)
         assertEquals(result.failStrategy, FailStrategy.Disconnect)
+        assertEquals(result.failReason, "The input string does not contain 'World'")
     }
 
     @Test
