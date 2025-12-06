@@ -11,7 +11,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 
 /**
- * A custom Kotlin logging utility.
+ * The default logger implementation of [ILogger].
  *
  * ## Overview
  *
@@ -79,7 +79,7 @@ import java.util.concurrent.LinkedBlockingQueue
  *   ).also { File(".logs").mkdirs() }
  *   ```
  */
-object Logger {
+object Logger : ILogger {
     private val logFileMap = mapOf(
         LogFile.ClientError to File(".logs/client_error-1.log"),
         LogFile.AssetsError to File(".logs/assets_error-1.log"),
@@ -95,25 +95,25 @@ object Logger {
     private val logQueue = LinkedBlockingQueue<LogCall>()
     private val executor = Executors.newSingleThreadExecutor()
 
-    fun verbose(tag: String = "", msg: String, logFull: Boolean = true) = verbose(tag, logFull) { msg }
-    fun verbose(tag: String = "", logFull: Boolean = true, msg: () -> String) = verbose(tag, logFull, Default, msg)
-    fun verbose(tag: String = "", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Verbose, msg)
+    override fun verbose(tag: String, msg: String, logFull: Boolean) = verbose(tag, logFull) { msg }
+    override fun verbose(tag: String, logFull: Boolean, msg: () -> String) = verbose(tag, logFull, Default, msg)
+    override fun verbose(tag: String, logFull: Boolean, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Verbose, msg)
 
-    fun debug(tag: String = "", msg: String, logFull: Boolean = true) = debug(tag, logFull) { msg }
-    fun debug(tag: String = "", logFull: Boolean = true, msg: () -> String) = debug(tag, logFull, Default, msg)
-    fun debug(tag: String = "", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Debug, msg)
+    override fun debug(tag: String, msg: String, logFull: Boolean) = debug(tag, logFull) { msg }
+    override fun debug(tag: String, logFull: Boolean, msg: () -> String) = debug(tag, logFull, Default, msg)
+    override fun debug(tag: String, logFull: Boolean, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Debug, msg)
 
-    fun info(tag: String = "", msg: String, logFull: Boolean = true) = info(tag, logFull) { msg }
-    fun info(tag: String = "", logFull: Boolean = true, msg: () -> String) = info(tag, logFull, Default, msg)
-    fun info(tag: String = "", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Info, msg)
+    override fun info(tag: String, msg: String, logFull: Boolean) = info(tag, logFull) { msg }
+    override fun info(tag: String, logFull: Boolean, msg: () -> String) = info(tag, logFull, Default, msg)
+    override fun info(tag: String, logFull: Boolean, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Info, msg)
 
-    fun warn(tag: String = "", msg: String, logFull: Boolean = true) = warn(tag, logFull) { msg }
-    fun warn(tag: String = "", logFull: Boolean = true, msg: () -> String) = warn(tag, logFull, Default, msg)
-    fun warn(tag: String = "", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Warn, msg)
+    override fun warn(tag: String, msg: String, logFull: Boolean) = warn(tag, logFull) { msg }
+    override fun warn(tag: String, logFull: Boolean, msg: () -> String) = warn(tag, logFull, Default, msg)
+    override fun warn(tag: String, logFull: Boolean, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Warn, msg)
 
-    fun error(tag: String = "", msg: String, logFull: Boolean = true) = error(tag, logFull) { msg }
-    fun error(tag: String = "", logFull: Boolean = true, msg: () -> String) = error(tag, logFull, Default, msg)
-    fun error(tag: String = "", logFull: Boolean = true, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Error, msg)
+    override fun error(tag: String, msg: String, logFull: Boolean) = error(tag, logFull) { msg }
+    override fun error(tag: String, logFull: Boolean, msg: () -> String) = error(tag, logFull, Default, msg)
+    override fun error(tag: String, logFull: Boolean, targets: Set<LogTarget>, msg: () -> String) = log(tag, logFull, targets, LogLevel.Error, msg)
 
     private fun log(
         tag: String,
