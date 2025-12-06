@@ -1,11 +1,11 @@
 package devtools
 
 import context.ServerContext
-import devtools.cmd.ArgumentCollection
-import devtools.cmd.ArgumentDescriptor
-import devtools.cmd.Command
-import devtools.cmd.CommandResult
-import devtools.cmd.CommandVariant
+import devtools.cmd.core.ArgumentCollection
+import devtools.cmd.core.ArgumentDescriptor
+import devtools.cmd.core.Command
+import devtools.cmd.core.CommandResult
+import devtools.cmd.core.CommandVariant
 import kotlin.text.toIntOrNull
 
 /**

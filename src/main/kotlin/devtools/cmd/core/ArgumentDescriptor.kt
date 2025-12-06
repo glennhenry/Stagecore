@@ -1,4 +1,4 @@
-package devtools.cmd
+package devtools.cmd.core
 
 /**
  * Describes a single command argument.

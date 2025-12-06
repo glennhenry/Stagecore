@@ -1,8 +1,8 @@
 package devtools
 
-import devtools.cmd.ArgumentCollection
-import devtools.cmd.CommandParser
-import devtools.cmd.CommandRequest
+import devtools.cmd.core.ArgumentCollection
+import devtools.cmd.core.CommandParser
+import devtools.cmd.core.CommandRequest
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.Test
 import kotlin.test.assertEquals

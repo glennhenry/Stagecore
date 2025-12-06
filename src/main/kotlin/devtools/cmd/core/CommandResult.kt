@@ -1,4 +1,4 @@
-package devtools.cmd
+package devtools.cmd.core
 
 /**
  * Represents the outcome of executing a server command.

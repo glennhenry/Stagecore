@@ -2,16 +2,15 @@ package devtools
 
 import com.mongodb.assertions.Assertions.assertTrue
 import context.ServerContext
-import devtools.cmd.ArgumentCollection
-import devtools.cmd.ArgumentDescriptor
-import devtools.cmd.Command
-import devtools.cmd.CommandDispatcher
-import devtools.cmd.CommandRequest
-import devtools.cmd.CommandResult
-import devtools.cmd.CommandVariant
-import devtools.cmd.variantsAsString
+import devtools.cmd.core.ArgumentCollection
+import devtools.cmd.core.ArgumentDescriptor
+import devtools.cmd.core.Command
+import devtools.cmd.core.CommandDispatcher
+import devtools.cmd.core.CommandRequest
+import devtools.cmd.core.CommandResult
+import devtools.cmd.core.CommandVariant
+import devtools.cmd.core.variantsAsString
 import kotlinx.serialization.json.Json
-import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import utils.JSON
 import utils.logging.TestLogger
@@ -19,7 +18,6 @@ import utils.randomString
 import kotlin.random.Random
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertIs
 
 /**
  * Command dispatcher test and example of command implementation [ExampleGiveCommand].

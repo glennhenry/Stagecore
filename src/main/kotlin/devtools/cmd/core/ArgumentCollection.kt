@@ -1,4 +1,4 @@
-package devtools.cmd
+package devtools.cmd.core
 
 /**
  * A wrapper around the list of raw argument strings provided to a command.

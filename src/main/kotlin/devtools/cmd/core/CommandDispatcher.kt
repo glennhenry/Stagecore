@@ -1,4 +1,4 @@
-package devtools.cmd
+package devtools.cmd.core
 
 import annotation.RevisitLater
 import context.ServerContext
