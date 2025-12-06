@@ -1,26 +1,30 @@
 package devtools
 
+import com.mongodb.assertions.Assertions.assertTrue
 import context.ServerContext
+import devtools.cmd.ArgumentCollection
+import devtools.cmd.ArgumentDescriptor
 import devtools.cmd.Command
 import devtools.cmd.CommandDispatcher
 import devtools.cmd.CommandRequest
 import devtools.cmd.CommandResult
-import kotlinx.coroutines.test.runTest
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
+import devtools.cmd.CommandVariant
+import devtools.cmd.variantsAsString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import utils.JSON
+import utils.logging.TestLogger
+import utils.randomString
+import kotlin.random.Random
 import kotlin.test.BeforeTest
 import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlin.test.assertIs
 
 /**
- * Command dispatcher test
+ * Command dispatcher test and example of command implementation [ExampleGiveCommand].
+ *
+ * Does not need to test invalid request since parser already validates that.
  */
 class CommandDispatcherTest {
     private val context = ServerContext.fake()
@@ -34,184 +38,355 @@ class CommandDispatcherTest {
     }
 
     @Test
-    fun `CommandDispatcher execute failed when command is not registered`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-
-        val obj = buildJsonObject {
-            put("field1", JsonPrimitive("pid123"))
-            put("field2", JsonPrimitive(1))
-        }
-
-        val input = CommandRequest("Example", obj)
-
-        assertTrue(dispatcher.handleCommand(input) is CommandResult.CommandNotFound)
+    fun `testCommandDispatcher register normal success`() {
+        val dispatcher = CommandDispatcher(context, TestLogger())
+        dispatcher.register(createCommand("cmd1"))
+        dispatcher.register(createCommand("cmd2"))
+        dispatcher.register(createCommand("cmd3"))
+        dispatcher.getAllRegisteredCommandsId().containsAll(listOf("cmd1", "cmd2", "cmd3"))
     }
 
     @Test
-    fun `CommandDispatcher register throws on duplicate command`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
+    fun `testCommandDispatcher register normal with variant success`() {
+        val dispatcher = CommandDispatcher(context, TestLogger())
+        dispatcher.register(createCommand("cmd1", generateVariants()))
+        dispatcher.register(createCommand("cmd2", generateVariants()))
+        dispatcher.register(createCommand("cmd3", generateVariants()))
+        dispatcher.getAllRegisteredCommandsId().containsAll(listOf("cmd1", "cmd2", "cmd3"))
+    }
+
+    @Test
+    fun `testCommandDispatcher register duplicate commandId success but warned`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        val cmd2a = generateVariant(2)
+        val cmd2b = generateVariant(3)
+
+        dispatcher.register(createCommand("cmd1"))
+        dispatcher.register(createCommand("cmd2", listOf(cmd2a)))
+        dispatcher.register(createCommand("cmd2", listOf(cmd2b)))
+
+        val call = logger.getLastWarnCalls(1)
+
+        // ensure warned
+        assertTrue(call.first().contains("has been registered before"))
+        // ensure the first registered command get overwritten
+        assertTrue(dispatcher.getAllVariantsOf("cmd2").contains(cmd2b))
+    }
+
+    @Test
+    fun `testCommandDispatcher register duplicate variant failed 1 and throws`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        val first = CommandVariant(
+            listOf(
+                ArgumentDescriptor("abc", "String", "descriptionA"),
+                ArgumentDescriptor("def", "String", "descriptionB"),
+            )
+        )
+
+        val variants = listOf(
+            first,
+            CommandVariant(
+                listOf(
+                    ArgumentDescriptor("abc", "String", "descriptionC"),
+                    ArgumentDescriptor("def", "String", "descriptionD"),
+                )
+            ),
+        )
 
         assertThrows<IllegalArgumentException> {
-            dispatcher.register(ExampleCommand())
+            dispatcher.register(createCommand("cmd1", variants))
         }
     }
 
     @Test
-    fun `CommandDispatcher successfully execute perfect command`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
+    fun `testCommandDispatcher register duplicate variant failed 2 and throws`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-        val obj = buildJsonObject {
-            put("field1", JsonPrimitive("pid123"))
-            put("field2", JsonPrimitive(12))
-            put("field3", JsonPrimitive(true))
+        val variants = listOf(generateVariant(2), generateVariant(2))
+
+        assertThrows<IllegalArgumentException> {
+            dispatcher.register(createCommand("cmd1", variants))
         }
-
-        val input = CommandRequest("Example", obj)
-
-        assertEquals(CommandResult.Executed, dispatcher.handleCommand(input))
     }
 
     @Test
-    fun `CommandDispatcher successfully execute command with unprovided optional`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
+    fun `testCommandDispatcher register commandId blank 1 throws`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-        val obj = buildJsonObject {
-            put("field1", JsonPrimitive("pid123"))
-            put("field2", JsonPrimitive(12))
+        val variants = listOf(generateVariant(2))
+
+        assertThrows<IllegalArgumentException> {
+            dispatcher.register(createCommand("", variants))
         }
-
-        val input = CommandRequest("Example", obj)
-
-        assertEquals(CommandResult.Executed, dispatcher.handleCommand(input))
     }
 
     @Test
-    fun `CommandDispatcher execute failed with unprovided required value`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
+    fun `testCommandDispatcher register commandId blank 2 throws`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-        val obj = buildJsonObject {
-            put("field2", JsonPrimitive(12))
+        val variants = listOf(generateVariant(2))
+
+        assertThrows<IllegalArgumentException> {
+            dispatcher.register(createCommand("   ", variants))
         }
-
-        val input = CommandRequest("Example", obj)
-
-        assertTrue(dispatcher.handleCommand(input) is CommandResult.SerializationFails)
     }
 
     @Test
-    fun `CommandDispatcher execute success on string argument type mismatch`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
+    fun `testCommandDispatcher register commandId has invalid character 1 throws`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-        val obj = buildJsonObject {
-            put("field1", JsonPrimitive(12))
-            put("field2", JsonPrimitive(12))
+        val variants = listOf(generateVariant(2))
+
+        assertThrows<IllegalArgumentException> {
+            dispatcher.register(createCommand("@@@", variants))
         }
-
-        val input = CommandRequest("Example", obj)
-
-        assertEquals(CommandResult.Executed, dispatcher.handleCommand(input))
     }
 
     @Test
-    fun `CommandDispatcher execute failed on non-string argument type mismatch`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
+    fun `testCommandDispatcher register commandId has invalid character 2 throws`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-        val obj = buildJsonObject {
-            put("field1", JsonPrimitive("pid123"))
-            put("field2", JsonPrimitive("dsafdsf"))
+        val variants = listOf(generateVariant(2))
+
+        assertThrows<IllegalArgumentException> {
+            dispatcher.register(createCommand("  @@@ ", variants))
         }
-
-        val input = CommandRequest("Example", obj)
-
-        assertTrue(dispatcher.handleCommand(input) is CommandResult.SerializationFails)
-    }
-
-    @OptIn(ExperimentalSerializationApi::class)
-    @Test
-    fun `CommandDispatcher execute failed on null value for non-null field`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
-
-        val obj = buildJsonObject {
-            put("field1", JsonPrimitive(null))
-            put("field2", JsonPrimitive(123))
-        }
-
-        val input = CommandRequest("Example", obj)
-
-        assertTrue(dispatcher.handleCommand(input) is CommandResult.SerializationFails)
     }
 
     @Test
-    fun `CommandDispatcher execute failed when command execution throws`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
+    fun `testCommandDispatcher register commandId has acceptable character does not throws`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-        val obj = buildJsonObject {
-            put("field1", JsonPrimitive("pid123"))
-            put("field2", JsonPrimitive(1))
-        }
+        val variants = listOf(generateVariant(2))
 
-        val input = CommandRequest("Example", obj)
-
-        assertTrue(dispatcher.handleCommand(input) is CommandResult.Error)
+        dispatcher.register(createCommand("give-ext", variants))
     }
 
     @Test
-    fun `CommandDispatcher execute failed when command has internal logic or domain error`() = runTest {
-        val dispatcher = CommandDispatcher(context)
-        dispatcher.register(ExampleCommand())
+    fun `testCommandDispatcher register commandId has whitespace character success`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-        val obj = buildJsonObject {
-            put("field1", JsonPrimitive("pid123"))
-            put("field2", JsonPrimitive(1002))
-        }
+        val variants = listOf(generateVariant(2))
 
-        val input = CommandRequest("Example", obj)
-
-        assertTrue(dispatcher.handleCommand(input) is CommandResult.ExecutionFailure)
+        dispatcher.register(createCommand("   give-ext", variants))
+        assertTrue(dispatcher.getAllRegisteredCommandsId().contains("give-ext"))
     }
-}
 
-@Serializable
-data class ExampleArgument(
-    val field1: String,
-    val field2: Int,
-    val field3: Boolean = false,
-)
+    @Test
+    fun `testCommandDispatcher register commandId duplicate name but different cases success`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-class ExampleCommand : Command<ExampleArgument> {
-    override val name: String = "Example"
-    override val shortDescription: String = "This is an example command"
-    override val detailedDescription: String = """
-This is an example command.
+        val variants = listOf(generateVariant(2))
 
-This command exists purely for demonstration and testing purposes. It also serves as a reference for how to properly implement a command. This message is also used as `detailedDescription` in the code.
+        dispatcher.register(createCommand("give-ext", variants))
+        dispatcher.register(createCommand("giVe-Ext", variants))
+        dispatcher.register(createCommand("GIVE-EXT", variants))
 
-Arguments:
+        assertTrue(dispatcher.getAllRegisteredCommandsId().containsAll(listOf("give-ext", "giVe-Ext", "GIVE-EXT")))
+    }
 
-- field1: String - Defines the first field used to control behavior X.
-- field2: Int - Represents parameter Y for demonstration.
-- field3: Boolean - (optional) Determines whether to enable feature Z.
-    """.trimIndent()
-    override val completionMessage: String = "Item {} successfully given to {}"
-    override val serializer: KSerializer<ExampleArgument> = ExampleArgument.serializer()
+    @Test
+    fun `testCommandDispatcher handleCommand unregistered command returns command not found`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
 
-    override suspend fun execute(serverContext: ServerContext, arg: ExampleArgument): CommandResult {
-        if (arg.field2 == 1) {
-            throw Exception()
+        assertTrue(
+            dispatcher.handleCommand(
+                CommandRequest(
+                    "cmd",
+                    buildArgCollection {})
+            ) is CommandResult.CommandNotFound
+        )
+    }
+
+    @Test
+    fun `testCommandDispatcher handleCommand normally 1 returns executed`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        dispatcher.register(ExampleGiveCommand())
+        assertTrue(
+            dispatcher.handleCommand(
+                CommandRequest(
+                    "give",
+                    buildArgCollection {
+                        add("playerAbc")
+                        add("water")
+                    })
+            ) is CommandResult.Executed
+        )
+    }
+
+    @Test
+    fun `testCommandDispatcher handleCommand normally 2 returns executed`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        dispatcher.register(ExampleGiveCommand())
+        assertTrue(
+            dispatcher.handleCommand(
+                CommandRequest(
+                    "give",
+                    buildArgCollection {
+                        add("playerAbc")
+                        add("water")
+                        add("100")
+                    })
+            ) is CommandResult.Executed
+        )
+    }
+
+    @Test
+    fun `testCommandDispatcher handleCommand insufficient arguments returns not enough argument`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        dispatcher.register(ExampleGiveCommand())
+        assertTrue(
+            dispatcher.handleCommand(
+                CommandRequest(
+                    "give",
+                    buildArgCollection {
+                        add("playerABC")
+                    })
+            ) is CommandResult.NotEnoughArgument
+        )
+    }
+
+    @Test
+    fun `testCommandDispatcher handleCommand argument type mismatch returns invalid argument type`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        dispatcher.register(ExampleGiveCommand())
+        assertTrue(
+            dispatcher.handleCommand(
+                CommandRequest(
+                    "give",
+                    buildArgCollection {
+                        add("playerABC")
+                        add("water")
+                        add("notNumber")
+                    })
+            ) is CommandResult.InvalidArgumentType
+        )
+    }
+
+    @Test
+    fun `testCommandDispatcher handleCommand simulates uncaught exception returns command error`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        dispatcher.register(ExampleGiveCommand())
+        assertTrue(
+            dispatcher.handleCommand(
+                CommandRequest(
+                    "give",
+                    buildArgCollection {
+                        add("playerABC")
+                        add("water")
+                        add("2")
+                    })
+            ) is CommandResult.Error
+        )
+    }
+
+    @Test
+    fun `testCommandDispatcher handleCommand simulates failure returns execution failure`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        dispatcher.register(ExampleGiveCommand())
+        assertTrue(
+            dispatcher.handleCommand(
+                CommandRequest(
+                    "give",
+                    buildArgCollection {
+                        add("playerABC")
+                        add("water")
+                        add("3")
+                    })
+            ) is CommandResult.ExecutionFailure
+        )
+    }
+
+    @Test
+    fun `testCommandDispatcher handleCommand too many arguments still success returns executed`() {
+        val logger = TestLogger()
+        val dispatcher = CommandDispatcher(context, logger)
+
+        dispatcher.register(ExampleGiveCommand())
+        assertTrue(
+            dispatcher.handleCommand(
+                CommandRequest(
+                    "give",
+                    buildArgCollection {
+                        add("playerABC")
+                        add("water")
+                        add("4")
+                        add("4")
+                        add("a")
+                        add("b")
+                    })
+            ) is CommandResult.Executed
+        )
+    }
+
+    private val charPool = ('a'..'z') + ('A'..'Z')
+    private val typePool = setOf("String", "Int", "Boolean", "Double")
+
+    private fun generateDescriptor(): ArgumentDescriptor {
+        val id = randomString(Random.nextInt(4, 9), charPool)
+        val desc = randomString(Random.nextInt(10, 30), charPool)
+        val type = typePool.random()
+
+        return ArgumentDescriptor(id, type, desc)
+    }
+
+    private fun generateDescriptors(): List<ArgumentDescriptor> {
+        return List(Random.nextInt(1, 4)) {
+            generateDescriptor()
         }
-        if (arg.field2 > 1000) {
-            return CommandResult.ExecutionFailure("field2 greater than 1000")
-        }
+    }
 
-        println("Executed success with arg=$arg")
-        return CommandResult.Executed
+    private fun generateVariant(length: Int): CommandVariant {
+        return CommandVariant(List(length) {
+            generateDescriptor()
+        })
+    }
+
+    private fun generateVariants(): List<CommandVariant> {
+        return List(Random.nextInt(1, 4)) { idx ->
+            generateVariant(length = idx)
+        }
+    }
+
+    private fun createCommand(id: String, variants: List<CommandVariant> = emptyList()): Command {
+        return object : Command {
+            override val commandId: String = id
+            override val description: String = "TestCommand of $id with variants: ${variants.variantsAsString()}"
+            override val variants: List<CommandVariant> = variants
+
+            override fun execute(serverContext: ServerContext, args: ArgumentCollection): CommandResult {
+                return CommandResult.Executed("execute() called on command ($id)")
+            }
+        }
+    }
+
+    private fun buildArgCollection(block: MutableList<String>.() -> Unit): ArgumentCollection {
+        val list = buildList(block)
+        return ArgumentCollection(list)
     }
 }
