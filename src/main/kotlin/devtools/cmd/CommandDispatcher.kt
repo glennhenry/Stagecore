@@ -1,86 +1,126 @@
 package devtools.cmd
 
+import annotation.RevisitLater
 import context.ServerContext
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.JsonObject
-import utils.JSON
+import utils.logging.ILogger
 import utils.logging.Logger
 
 /**
  * Dispatch and execute server registered commands.
  *
- * Server commands offers the ability to control and monitor the server.
- * It enables user to modify server's behavior, such as modifying player's data.
+ * Server commands offers the ability to control the server from command implementation.
+ * It gives the possibility to modify server's behavior, such as modifying player's data.
  *
- * The server accepts command from the API server, which is typically
- * operated from the external web devtools.
+ * The server accepts command from simple CLI via the external web devtools.
  *
  * How to use:
  * - Implement [Command].
  * - Register the command with [register].
- * - Via the devtools, select command to be executed and input arguments.
+ * - Via the devtools, type the command with input arguments.
+ * - Syntax typically looks like 'give playerABC water 100'.
  *
  * See example in `test.devtools.CommandDispatcherTest`.
  */
-class CommandDispatcher(private val serverContext: ServerContext) {
-    private val commands = mutableMapOf<String, Command<*>>()
+class CommandDispatcher(private val serverContext: ServerContext, private val logger: ILogger) {
+    private val commands = mutableMapOf<String, Command>()
+
+    /**
+     * Require at least one character that is not a whitespace.
+     * Allows only: [[a-z]] [[A-Z]] [[0-9]] [[-]] [[_]] and whitespace
+     */
+    private val allowedPattern = Regex("^(?=.*\\S)[a-zA-Z0-9_\\-\\s]+$")
 
     /**
      * Register a server command.
      *
      * @param command The command to be registered.
-     * @param T The typed argument for the command.
      *
-     * @throws IllegalArgumentException If the same command name has already been registered,
-     *                                  or when command implementation fail to provide correct `argInfo`.
+     * @throws IllegalArgumentException throws when:
+     * - `commandId` is blank or contains invalid character (see [allowedPattern]).
+     * - Command has duplicate [CommandVariant].
      */
-    fun <T> register(command: Command<T>) {
-        when {
-            commands.containsKey(command.name) -> {
+    @RevisitLater(
+        "It is not possible to enforce unique variants on command, " +
+                "since variants are implemented by the command itself. " +
+                "As a result, we chose to throw exception on registration. " +
+                "We may not want random error for something as trivial as a command registration."
+    )
+    fun register(command: Command) {
+        val cleanId = sanitizeCommandId(command.commandId)
+
+        if (cleanId in commands) {
+            logger.warn { "The commandId '${cleanId}' has been registered before, the old one will be overwritten." }
+        }
+
+        val seenVariant = mutableMapOf<Int, CommandVariant>()
+        for (variant in command.variants) {
+            if (variant.argCount in seenVariant) {
                 throw IllegalArgumentException(
-                    "Duplicate command registration for '${command.name}'; Each command's name must be unique."
+                    "\n\tFound duplicate command variant for command '${cleanId}' " +
+                            "with argument length of ${variant.argCount}: $variant\n" +
+                            "\tVariants must have unique argument counts.\n" +
+                            "\tThe first-come variant: (${seenVariant[variant.argCount]?.detailedString()}) will be used"
                 )
+            } else {
+                seenVariant[variant.argCount] = variant
             }
         }
 
-        commands[command.name] = command
+        commands[cleanId] = command
+    }
+
+    private fun sanitizeCommandId(id: String): String {
+        // 1. Empty commandId
+        if (id.isBlank()) {
+            throw IllegalArgumentException("commandId is blank.")
+        }
+
+        // 2. Command does not match regex
+        if (!id.matches(allowedPattern)) {
+            val badChars = id.filter { !it.isLetterOrDigit() && it !in "_- " }
+            throw IllegalArgumentException(
+                "commandId contains invalid characters: '$badChars'. Allowed: letters, digits, '-', '_', and spaces."
+            )
+        }
+
+        return id.trim()
     }
 
     /**
      * Handle command request.
      *
-     * It involves doing a lookup to the registered commands, deserializing raw
-     * arguments input in JSON to the associated typed command argument, then
+     * It involves doing a lookup to the registered commands, then
      * calling `execute` method in the command implementation.
      *
      * @return [CommandResult] that represents the outcome.
      */
-    @Suppress("UNCHECKED_CAST")
-    suspend fun handleCommand(request: CommandRequest): CommandResult {
-        val cmd = (commands[request.name]
-            ?: return CommandResult.CommandNotFound("Failed to execute command '${request.name}': Command is unknown."))
-                as Command<Any?>
+    fun handleCommand(request: CommandRequest): CommandResult {
+        val command = commands[request.commandId] ?: return CommandResult.CommandNotFound(request.commandId)
+
+        logger.info { "Received command '${request.commandId} ${request.arguments}'" }
 
         try {
-            val argsJson = JsonObject(request.args)
-            val argsObj = JSON.json.decodeFromJsonElement(cmd.serializer, argsJson)
-            Logger.info { "Received command '${cmd.name}' with args=$argsObj" }
-
-            val output = cmd.execute(serverContext, argsObj)
-            Logger.info { "Done executing command '${cmd.name}'; result='$output'" }
-            return output
-        } catch (e: SerializationException) {
-            val msg = "Failed to deserialize arguments for command '${cmd.name}'. Ensure the provided argument matches the expected argument structure; error: ${e.message ?: e}"
-            Logger.error { msg }
-            return CommandResult.SerializationFails(msg)
-        } catch (e: IllegalArgumentException) {
-            val msg = "Invalid argument for command '${cmd.name}', illegal argument provided; error: ${e.message ?: e}"
-            Logger.error { msg }
-            return CommandResult.SerializationFails(msg)
+            val result = command.execute(serverContext, request.arguments)
+            Logger.info { "Done executing command '${request.commandId}' with result=$result" }
+            return result
         } catch (e: Exception) {
-            val msg = "Error thrown while executing the command '${cmd.name}'; error: ${e.message ?: e}"
+            val msg = "Uncaught error while executing the command '${request.commandId}'; error: ${e.message ?: e}"
             Logger.error { msg }
             return CommandResult.Error(msg)
         }
+    }
+
+    /**
+     * @return [Set] of registered `commandId`(s).
+     */
+    fun getAllRegisteredCommandsId(): Set<String> {
+        return commands.keys
+    }
+
+    /**
+     * @return [List] of variants of `commandId`. Returns empty list if the command is not registered.
+     */
+    fun getAllVariantsOf(commandId: String): List<CommandVariant> {
+        return commands[commandId]?.variants ?: emptyList()
     }
 }

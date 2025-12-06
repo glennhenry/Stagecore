@@ -7,17 +7,15 @@ sealed class CommandResult(val message: String = "") {
     /**
      * The command executed successfully.
      */
-    object Executed : CommandResult() {
-        override fun toString(): String = "Executed"
+    class Executed(message: String) : CommandResult(message) {
+        override fun toString(): String = "Executed: $message"
     }
 
     /**
-     * The command failed to execute due to serialization failure.
-     *
-     * This includes incorrect types, insufficient arguments, or any illegal input in the command.
+     * Command failed during execution due to a logical or domain error (e.g., player not found, invalid item).
      */
-    class SerializationFails(message: String) : CommandResult(message) {
-        override fun toString(): String = "SerializationFails: $message"
+    class ExecutionFailure(message: String) : CommandResult(message) {
+        override fun toString(): String = "ExecutionFailure: $message"
     }
 
     /**
@@ -28,14 +26,21 @@ sealed class CommandResult(val message: String = "") {
     }
 
     /**
-     * Command failed during execution due to a logical or domain error (e.g., player not found).
+     * The command failed to execute because argument is not enough.
      */
-    class ExecutionFailure(message: String) : CommandResult(message) {
-        override fun toString(): String = "ExecutionFailure: $message"
+    class NotEnoughArgument(message: String) : CommandResult(message) {
+        override fun toString(): String = "NotEnoughArgument: $message"
     }
 
     /**
-     * An unexpected error occurred during command execution.
+     * The command failed to execute because argument type is invalid.
+     */
+    class InvalidArgumentType(message: String) : CommandResult(message) {
+        override fun toString(): String = "InvalidArgumentType: $message"
+    }
+
+    /**
+     * An unexpected error that is uncaught within the command's execution logic.
      */
     class Error(message: String) : CommandResult(message) {
         override fun toString(): String = "Error: $message"

@@ -1,38 +1,31 @@
 package devtools.cmd
 
 import context.ServerContext
-import kotlinx.serialization.KSerializer
 
 /**
  * Represents a server command that can be invoked to perform a specific action in server.
  *
  * See `test.devtools.CommandDispatcherTest` for example.
  *
- * @property name A human-readable name for the command. Must be unique to other commands.
- * @property shortDescription A brief explanation of what the command does.
- * @property detailedDescription A detailed explanation of the command including
- *                               argument type and purpose details.
- * @property completionMessage A message displayed after the command completes successfully.
- * @property serializer The serializer that defines how to encode or decode the argument type [T].
- * @param T The data class type defining the structure of the command’s arguments.
+ * @property commandId A human-readable name for the command which is also used to call the command.
+ *                     Must be unique to other commands. Case-sensitive.
+ * @property description An explanation of what the command does.
  */
-interface Command<T> {
-    val name: String
-    val shortDescription: String
-    val detailedDescription: String
-    val completionMessage: String
-    val serializer: KSerializer<T>
+interface Command {
+    val commandId: String
+    val description: String
+    val variants: List<CommandVariant>
 
     /**
      * Execution logic of the command.
      *
-     * @param serverContext The server's state.
-     * @param arg The fully deserialized and validated argument object.
+     * @param serverContext The server's state to be used during execution.
+     * @param args Input arguments object.
      *
      * @return Result of command execution, which should be any of the three:
      * - [CommandResult.Executed]
      * - [CommandResult.ExecutionFailure]
      * - [CommandResult.Error]
      */
-    suspend fun execute(serverContext: ServerContext, arg: T): CommandResult
+    fun execute(serverContext: ServerContext, args: ArgumentCollection): CommandResult
 }
