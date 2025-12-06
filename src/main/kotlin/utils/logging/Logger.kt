@@ -209,6 +209,7 @@ object Logger : ILogger {
         val caller = Thread.currentThread().stackTrace
             .dropWhile { element ->
                 element.className.startsWith("utils.logging.Logger") ||
+                        element.className.startsWith("utils.logging.ILogger") ||
                         element.className.startsWith("java.lang.Thread") ||
                         element.className.contains("ThreadPoolExecutor")
             }
