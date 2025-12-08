@@ -4,6 +4,7 @@ import core.PlayerService
 import core.ServerService
 import data.Database
 import data.EmptyDatabase
+import devtools.cmd.core.CommandDispatcher
 import server.core.OnlinePlayerRegistry
 import server.protocol.SocketCodecDispatcher
 import server.tasks.ServerTaskDispatcher
@@ -12,6 +13,7 @@ import user.PlayerAccountRepository
 import user.auth.AuthProvider
 import user.auth.EmptyAuthProvider
 import user.auth.SessionManager
+import utils.logging.Logger
 import ws.WebsocketManager
 
 /**
@@ -36,6 +38,7 @@ data class ServerContext(
     val contextTracker: ContextTracker,
     val codecDispatcher: SocketCodecDispatcher,
     val taskDispatcher: ServerTaskDispatcher,
+    val commandDispatcher: CommandDispatcher,
     val wsManager: WebsocketManager,
     val services: ServerServices
 ) {
@@ -65,6 +68,7 @@ data class ServerContext(
                 contextTracker = contextTracker,
                 codecDispatcher = SocketCodecDispatcher(),
                 taskDispatcher = ServerTaskDispatcher(),
+                commandDispatcher = CommandDispatcher(Logger),
                 wsManager = WebsocketManager(),
                 services = ServerServices()
             )

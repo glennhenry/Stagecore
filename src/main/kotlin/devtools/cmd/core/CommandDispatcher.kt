@@ -21,7 +21,8 @@ import utils.logging.Logger
  *
  * See example in `test.devtools.CommandDispatcherTest`.
  */
-class CommandDispatcher(private val serverContext: ServerContext, private val logger: ILogger) {
+class CommandDispatcher(private val logger: ILogger) {
+    private lateinit var serverContext: ServerContext
     private val commands = mutableMapOf<String, Command>()
 
     /**
@@ -122,5 +123,9 @@ class CommandDispatcher(private val serverContext: ServerContext, private val lo
      */
     fun getAllVariantsOf(commandId: String): List<CommandVariant> {
         return commands[commandId]?.variants ?: emptyList()
+    }
+
+    fun init(context: ServerContext) {
+        this.serverContext = context
     }
 }

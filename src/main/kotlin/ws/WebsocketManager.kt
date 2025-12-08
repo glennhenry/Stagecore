@@ -1,5 +1,6 @@
 package ws
 
+import context.ServerContext
 import io.ktor.server.websocket.DefaultWebSocketServerSession
 import io.ktor.websocket.Frame
 import kotlinx.serialization.json.Json
@@ -10,7 +11,8 @@ typealias ClientSessions = ConcurrentHashMap<String, DefaultWebSocketServerSessi
 /**
  * Track websocket connections.
  */
-class WebsocketManager() {
+class WebsocketManager {
+    private lateinit var serverContext: ServerContext
     private val clients = ClientSessions()
 
     /**
@@ -53,5 +55,9 @@ class WebsocketManager() {
                 session.send(Frame.Text(Json.encodeToString(WsMessage(type = "ping", payload = null))))
             }
         }
+    }
+
+    fun init(context: ServerContext) {
+        this.serverContext = context
     }
 }

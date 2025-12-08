@@ -7,6 +7,7 @@ import context.ServerContext
 import context.ServerServices
 import core.data.GameDefinition
 import data.MongoImpl
+import devtools.cmd.core.CommandDispatcher
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -144,7 +145,6 @@ suspend fun Application.module() {
         timeout = 15.seconds
         masking = true
     }
-    val wsManager = WebsocketManager()
 
     /* 8. Setup ServerContext */
     val playerAccountRepository = PlayerAccountRepositoryMongo(database.getCollection("player_account"))
@@ -154,6 +154,8 @@ suspend fun Application.module() {
     val contextTracker = DefaultContextTracker()
     val codecDispatcher = SocketCodecDispatcher()
     val taskDispatcher = ServerTaskDispatcher()
+    val commandDispatcher = CommandDispatcher(Logger)
+    val wsManager = WebsocketManager()
     val services = ServerServices()
     val serverContext = ServerContext(
         db = database,
@@ -164,9 +166,14 @@ suspend fun Application.module() {
         contextTracker = contextTracker,
         codecDispatcher = codecDispatcher,
         taskDispatcher = taskDispatcher,
+        commandDispatcher = commandDispatcher,
         wsManager = wsManager,
         services = services
     )
+
+    // initialize components with circular dependency
+    wsManager.init(serverContext)
+    commandDispatcher.init(serverContext)
 
     /* 9. Initialize GameDefinition */
     GameDefinition.initialize()
