@@ -12,6 +12,7 @@ import user.PlayerAccountRepository
 import user.auth.AuthProvider
 import user.auth.EmptyAuthProvider
 import user.auth.SessionManager
+import ws.WebsocketManager
 
 /**
  * Represents the **global server-side context** which includes various server components.
@@ -35,6 +36,7 @@ data class ServerContext(
     val contextTracker: ContextTracker,
     val codecDispatcher: SocketCodecDispatcher,
     val taskDispatcher: ServerTaskDispatcher,
+    val wsManager: WebsocketManager,
     val services: ServerServices
 ) {
     companion object {
@@ -63,6 +65,7 @@ data class ServerContext(
                 contextTracker = contextTracker,
                 codecDispatcher = SocketCodecDispatcher(),
                 taskDispatcher = ServerTaskDispatcher(),
+                wsManager = WebsocketManager(),
                 services = ServerServices()
             )
         }
