@@ -3,7 +3,7 @@ package user.auth
 import core.data.AdminData
 import data.Database
 import user.PlayerAccountRepository
-import user.model.PlayerSession
+import user.model.UserSession
 import utils.logging.Logger
 
 /**
@@ -16,12 +16,12 @@ class DefaultAuthProvider(
     private val playerAccountRepository: PlayerAccountRepository,
     private val sessionManager: SessionManager
 ) : AuthProvider {
-    override suspend fun register(username: String, password: String): PlayerSession {
+    override suspend fun register(username: String, password: String): UserSession {
         val pid = db.createPlayer(username, password)
-        return sessionManager.create(playerId = pid)
+        return sessionManager.create(userId = pid)
     }
 
-    override suspend fun login(username: String, password: String): PlayerSession? {
+    override suspend fun login(username: String, password: String): UserSession? {
         val result = playerAccountRepository.verifyCredentials(username, password)
         result.onFailure {
             Logger.error { "Failure on verifyCredentials for username=$username: ${it.message}" }
@@ -30,7 +30,7 @@ class DefaultAuthProvider(
         return sessionManager.create(result.getOrThrow())
     }
 
-    override suspend fun adminLogin(): PlayerSession {
+    override suspend fun adminLogin(): UserSession {
         return sessionManager.create(AdminData.PLAYER_ID)
     }
 
