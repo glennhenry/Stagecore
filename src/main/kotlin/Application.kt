@@ -19,7 +19,8 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.date.getTimeMillis
+import io.ktor.server.websocket.*
+import io.ktor.util.date.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
@@ -44,8 +45,10 @@ import utils.logging.Logger
 import utils.logging.LoggerSettings
 import utils.logging.toInt
 import utils.logging.toLogLevel
+import ws.WebsocketManager
 import java.io.File
 import java.text.SimpleDateFormat
+import kotlin.time.Duration.Companion.seconds
 
 fun main(args: Array<String>) = EngineMain.main(args)
 
@@ -135,7 +138,15 @@ suspend fun Application.module() {
         adminEnabled = config().getBoolean("game.enableAdmin", true)
     )
 
-    /* 7. Setup ServerContext */
+    /* 7. Install websockets */
+    install(WebSockets) {
+        pingPeriod = 15.seconds
+        timeout = 15.seconds
+        masking = true
+    }
+    val wsManager = WebsocketManager()
+
+    /* 8. Setup ServerContext */
     val playerAccountRepository = PlayerAccountRepositoryMongo(database.getCollection("player_account"))
     val sessionManager = SessionManager()
     val authProvider = DefaultAuthProvider(database, playerAccountRepository, sessionManager)
@@ -153,22 +164,23 @@ suspend fun Application.module() {
         contextTracker = contextTracker,
         codecDispatcher = codecDispatcher,
         taskDispatcher = taskDispatcher,
+        wsManager = wsManager,
         services = services
     )
 
-    /* 8. Initialize GameDefinition */
+    /* 9. Initialize GameDefinition */
     GameDefinition.initialize()
 
     // represent ephemeral token storage generated to enter /devtools
     val devtoolsToken = mutableMapOf<String, Long>()
 
-    /* 9. Register routes */
+    /* 10. Register routes */
     routing {
         fileRoutes()
         devtoolsRoutes(devtoolsToken)
     }
 
-    /* 10. Initialize servers */
+    /* 11. Initialize servers */
     // build server configs
     val gameServerConfig = GameServerConfig(
         host = config().getString("game.host", "127.0.0.1"),
@@ -179,7 +191,7 @@ suspend fun Application.module() {
         GameServer(gameServerConfig)
     }
 
-    /* 11. Run all the servers */
+    /* 12. Run all the servers */
     val container = ServerContainer(servers, serverContext)
     run {
         container.initializeAll()

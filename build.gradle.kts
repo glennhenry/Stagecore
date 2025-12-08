@@ -54,7 +54,7 @@ dependencies {
     implementation(libs.logback.classic)
     implementation(libs.ktor.server.config.yaml)
     // implementation(libs.ktor.serialization.kotlinx.protobuf)
-    // implementation(libs.ktor.server.websockets)
+    implementation(libs.ktor.server.websockets)
 
     implementation(libs.mongodb.driver.kotlin.coroutine)
     implementation(libs.mongodb.bson.kotlinx)
