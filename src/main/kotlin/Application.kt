@@ -1,6 +1,6 @@
 import api.routes.devtoolsRoutes
 import api.routes.fileRoutes
-import api.routes.underOneMinute
+import api.routes.timeUnderMinutes
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import context.DefaultContextTracker
 import context.ServerContext
@@ -177,7 +177,7 @@ suspend fun Application.module() {
     /* 10. Register routes */
     routing {
         fileRoutes()
-        devtoolsRoutes(devtoolsToken)
+        devtoolsRoutes(serverContext, devtoolsToken)
     }
 
     /* 11. Initialize servers */
@@ -207,7 +207,7 @@ suspend fun Application.module() {
                             println("Token: $token")
                             devtoolsToken[token] = getTimeMillis()
                             devtoolsToken.map { (token, millis) ->
-                                if (!underOneMinute(millis)) {
+                                if (!timeUnderMinutes(millis, 1)) {
                                     devtoolsToken.remove(token)
                                 }
                             }
