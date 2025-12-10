@@ -1,6 +1,7 @@
 package api.routes
 
 import context.ServerContext
+import io.ktor.http.ContentType
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.webSocket
@@ -15,6 +16,7 @@ import utils.logging.Logger
 import ws.WsMessage
 import java.io.File
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Devtools routes. In the devtools, there are three sections of tools:
@@ -55,21 +57,32 @@ fun Route.devtoolsRoutes(serverContext: ServerContext, tokenStorage: MutableMap<
         val token = call.request.queryParameters["token"]
         val cookie = call.request.cookies["devtools-clientId"]
 
-        val tokenValid = token != null &&
-                tokenStorage.contains(token) &&
-                timeUnderMinutes(tokenStorage[token]!!, 1)
         val cookieValid = cookie != null &&
                 serverContext.sessionManager.verify(cookie)
 
         // user already authenticated before, does not need token from query parameter
         if (cookieValid) {
+            Logger.debug { "Request to /devtools succeed: user has client cookie" }
             call.respondFile(devtoolsHtml)
             return@get
         }
 
         // user authenticating but fails
-        if (!tokenValid) {
+        if (token == null) {
+            Logger.debug { "Request to /devtools (no token), responded with wall" }
             call.respondFile(wallHtml)
+            return@get
+        }
+
+        if (!tokenStorage.contains(token)) {
+            Logger.debug { "Request to /devtools: got unknown token" }
+            call.respondText(insertHtmlTemplate(wallHtml, "{{MESSAGE}}", "Unknown token"), ContentType.Text.Html)
+            return@get
+        }
+
+        if (tokenStorage.contains(token) && !timeUnderMinutes(tokenStorage[token]!!, 1)) {
+            Logger.debug { "Request to /devtools: token already expired" }
+            call.respondText(insertHtmlTemplate(wallHtml, "{{MESSAGE}}", "Token already expired"), ContentType.Text.Html)
             return@get
         }
 
@@ -78,6 +91,7 @@ fun Route.devtoolsRoutes(serverContext: ServerContext, tokenStorage: MutableMap<
             userId = UUID.new(), validFor = 6.hours, lifetime = 6.hours
         )
         call.response.cookies.append("devtools-clientId", session.token, maxAge = 21600, path = "/devtools")
+        Logger.debug { "Request to /devtools: token correct, user logged in" }
         call.respondFile(devtoolsHtml)
     }
 
@@ -121,5 +135,9 @@ fun Route.devtoolsRoutes(serverContext: ServerContext, tokenStorage: MutableMap<
 }
 
 fun timeUnderMinutes(timeMillis: Long, minutes: Int): Boolean {
-    return getTimeMillis() - timeMillis < minutes
+    return getTimeMillis() - timeMillis < minutes.minutes.inWholeMilliseconds
+}
+
+fun insertHtmlTemplate(file: File, templateId: String, message: String): String {
+    return file.readText().replace(templateId, message)
 }

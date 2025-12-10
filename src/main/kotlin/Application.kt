@@ -211,7 +211,7 @@ suspend fun Application.module() {
                     when (clean) {
                         "token" -> {
                             val token = UUID.new()
-                            println("Token: $token")
+                            println(token)
                             devtoolsToken[token] = getTimeMillis()
                             devtoolsToken.map { (token, millis) ->
                                 if (!timeUnderMinutes(millis, 1)) {
