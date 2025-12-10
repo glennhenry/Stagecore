@@ -53,8 +53,6 @@ import kotlin.time.Duration.Companion.seconds
 
 fun main(args: Array<String>) = EngineMain.main(args)
 
-const val AppStartupTag = "AppStartup"
-
 @Suppress("unused")
 suspend fun Application.module() {
     /* 1. Setup logger */
@@ -124,11 +122,11 @@ suspend fun Application.module() {
     /* 5. Install status pages */
     install(StatusPages) {
         exception<Throwable> { call, cause ->
-            Logger.error(AppStartupTag, "Server error: ${cause.message}")
+            Logger.error { "Server error: ${cause.message}" }
             call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
         }
         unhandled { call ->
-            Logger.error(AppStartupTag, "Unhandled API route: ${call.request.httpMethod} ${call.request.uri}.")
+            Logger.error { "Unhandled API route: ${call.request.httpMethod} ${call.request.uri}." }
         }
     }
 
@@ -243,7 +241,7 @@ suspend fun Application.module() {
         runBlocking {
             container.shutdownAll()
         }
-        Logger.info(AppStartupTag, "Server shutdown complete")
+        Logger.info { "Server shutdown complete" }
     })
 }
 
