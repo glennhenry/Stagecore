@@ -8,7 +8,7 @@ import context.ServerServices
 import core.data.GameDefinition
 import data.MongoImpl
 import devtools.cmd.core.CommandDispatcher
-import devtools.cmd.impl.ExampleGiveCommand
+import devtools.cmd.impl.ExampleCommand
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -174,7 +174,7 @@ suspend fun Application.module() {
     wsManager.init(serverContext)
     commandDispatcher.init(serverContext)
 
-    commandDispatcher.register(ExampleGiveCommand())
+    commandDispatcher.register(ExampleCommand())
 
     /* 9. Initialize GameDefinition */
     GameDefinition.initialize()
