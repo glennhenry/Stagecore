@@ -47,7 +47,7 @@ import utils.logging.Logger
 import utils.logging.LoggerSettings
 import utils.logging.toInt
 import utils.logging.toLogLevel
-import ws.WebsocketManager
+import ws.WebSocketManager
 import java.io.File
 import java.text.SimpleDateFormat
 import kotlin.time.Duration.Companion.seconds
@@ -154,7 +154,7 @@ suspend fun Application.module() {
     val codecDispatcher = SocketCodecDispatcher()
     val taskDispatcher = ServerTaskDispatcher()
     val commandDispatcher = CommandDispatcher(Logger)
-    val wsManager = WebsocketManager()
+    val wsManager = WebSocketManager()
     val services = ServerServices()
     val serverContext = ServerContext(
         db = database,

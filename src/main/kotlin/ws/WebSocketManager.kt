@@ -11,7 +11,7 @@ typealias ClientSessions = ConcurrentHashMap<String, DefaultWebSocketServerSessi
 /**
  * Track websocket connections.
  */
-class WebsocketManager {
+class WebSocketManager {
     private lateinit var serverContext: ServerContext
     private val clients = ClientSessions()
 
