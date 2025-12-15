@@ -73,7 +73,7 @@ class TestValidationScheme {
         assertNotNull(result.failStrategy)
         assertEquals(result.failStrategy, FailStrategy.Disconnect)
         assertEquals(result.failReason, "The input string does not contain 'World'")
-        assertEquals(result.failedAtStage, "Contains 'World' FAILED")
+        assertEquals(result.failedAtStage, "stage-1: Contains 'World' FAILED")
     }
 
     @Test
