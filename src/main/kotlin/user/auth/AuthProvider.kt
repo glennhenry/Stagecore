@@ -12,7 +12,7 @@ interface AuthProvider {
      * @return [UserSession] of the newly created account for further authentication.
      *         Returns `null` if registration is failed.
      */
-    suspend fun register(username: String, password: String): UserSession?
+    suspend fun register(username: String, password: String): Result<UserSession>
 
     /**
      * Login with [username] and [password].
@@ -20,7 +20,7 @@ interface AuthProvider {
      * @return [UserSession] which is used for further authentication.
      *         Returns `null` if login is failed (i.e., wrong credentials or user doesn't exist).
      */
-    suspend fun login(username: String, password: String): UserSession?
+    suspend fun login(username: String, password: String): Result<UserSession>
 
     /**
      * Login with admin account, should always succeed.

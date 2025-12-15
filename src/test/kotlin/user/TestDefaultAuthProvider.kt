@@ -77,7 +77,7 @@ class TestDefaultAuthProvider {
     }
 
     @Test
-    fun `test login but account don't exist return null`() = runTest {
+    fun `test login but account don't exist return failure result`() = runTest {
         val mongoDb = initMongo()
         val collection = mongoDb.getCollection<PlayerAccount>("player_account")
         collection.drop()
@@ -88,11 +88,12 @@ class TestDefaultAuthProvider {
         val repo = PlayerAccountRepositoryMongo(collection)
         val provider = DefaultAuthProvider(db, repo, manager)
 
-        assertNull(provider.login("asdf", "fdsa"))
+        val session = provider.login("asdf", "fdsa")
+        assertTrue(session.isFailure)
     }
 
     @Test
-    fun `test login wrong credentials return null`() = runTest {
+    fun `test login wrong credentials return failure result`() = runTest {
         val mongoDb = initMongo()
         val collection = mongoDb.getCollection<PlayerAccount>("player_account")
         collection.drop()
@@ -104,7 +105,8 @@ class TestDefaultAuthProvider {
         val provider = DefaultAuthProvider(db, repo, manager)
 
         provider.register("helloworld", "kotlinktor")
-        assertNull(provider.login("helloworld", "ktor"))
+        val session = provider.login("helloworld", "ktor")
+        assertTrue(session.isFailure)
     }
 
     @Test

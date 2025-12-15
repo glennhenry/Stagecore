@@ -16,18 +16,18 @@ class DefaultAuthProvider(
     private val playerAccountRepository: PlayerAccountRepository,
     private val sessionManager: SessionManager
 ) : AuthProvider {
-    override suspend fun register(username: String, password: String): UserSession {
+    override suspend fun register(username: String, password: String): Result<UserSession> {
         val pid = db.createPlayer(username, password)
-        return sessionManager.create(userId = pid)
+        return Result.success(sessionManager.create(userId = pid))
     }
 
-    override suspend fun login(username: String, password: String): UserSession? {
+    override suspend fun login(username: String, password: String): Result<UserSession> {
         val result = playerAccountRepository.verifyCredentials(username, password)
         result.onFailure {
             Logger.error { "Failure on verifyCredentials for username=$username: ${it.message}" }
-            return null
+            return Result.failure(it)
         }
-        return sessionManager.create(result.getOrThrow())
+        return Result.success(sessionManager.create(result.getOrThrow()))
     }
 
     override suspend fun adminLogin(): UserSession {
