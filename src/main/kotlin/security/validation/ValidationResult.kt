@@ -10,6 +10,7 @@ package security.validation
 sealed class ValidationResult(
     val failStrategy: FailStrategy? = null,
     val failReason: String? = null,
+    val failedAtStage: String? = null,
     val error: Throwable? = null
 ) {
     /**
@@ -20,11 +21,11 @@ sealed class ValidationResult(
     /**
      * The validation failed because one or more conditions did not meet the requirements.
      */
-    class Failed(failStrategy: FailStrategy, failReason: String) : ValidationResult(failStrategy, failReason)
+    class Failed(failStrategy: FailStrategy, failReason: String, failedAtStage: String) : ValidationResult(failStrategy, failReason, failedAtStage)
 
     /**
      * The validation could not be performed due to an internal error.
      */
-    class Error(failStrategy: FailStrategy, failReason: String, error: Throwable) :
-        ValidationResult(failStrategy, failReason, error)
+    class Error(failStrategy: FailStrategy, failReason: String, failedAtStage: String, error: Throwable) :
+        ValidationResult(failStrategy, failReason, failedAtStage, error)
 }

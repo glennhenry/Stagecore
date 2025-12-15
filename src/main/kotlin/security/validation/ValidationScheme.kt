@@ -23,6 +23,9 @@ import utils.logging.Logger
  *   1. The stage's own `failStrategy` and `failReason` if defined.
  *   2. The global ones passed to [validate].
  *   3. Defaults: `FailStrategy.Cancel` and reason `"[Not specified]"`.
+ * - Use [requireSuspend] and [validateSuspend] if the following validation scheme
+ *   contains suspended function calls. Can use `require` and `requireSuspend` together,
+ *   but must use `validateSuspend` if there is at least one `requireSuspend`.
  *
  * @param schemeName A readable alias or identifier for this validation scheme (e.g., `"BuildingCreate"`).
  * @param factory A factory lambda that provides the execution context (e.g., `PlayerServices`).
@@ -43,14 +46,14 @@ class ValidationScheme<T>(private val schemeName: String, private val factory: (
     /**
      * Adds a validation stage to the scheme.
      *
-     * Each stage defines a named predicate that must evaluate to `true`.
+     * Each stage defines a named predicate that **must evaluate to `true`**.
      * If it fails, the associated [FailStrategy] and reason will be used
      * when reporting or handling the failure.
      *
      * @param stageName Short descriptive title for this stage (e.g., `"XP Check"`).
      * @param failStrategy Optional strategy that determines how failure is handled.
      * @param failReason Optional reason string describing why the validation is required.
-     * @param predicate The actual validation check to run.
+     * @param predicate The actual validation check to run. **Must be true for the check to pass.**
      */
     fun require(
         stageName: String,
@@ -59,7 +62,23 @@ class ValidationScheme<T>(private val schemeName: String, private val factory: (
         predicate: T.() -> Boolean
     ) = apply {
         stages.add(
-            ValidationStage(stageName, failStrategy, failReason, predicate)
+            ValidationStage(stageName, failStrategy, failReason, NonSuspendPredicate(predicate))
+        )
+    }
+
+    /**
+     * Suspended version of [require].
+     *
+     * This takes suspendable predicate function.
+     */
+    fun requireSuspend(
+        stageName: String,
+        failStrategy: FailStrategy = FailStrategy.Cancel,
+        failReason: String = "[Not specified]",
+        predicate: suspend T.() -> Boolean
+    ) = apply {
+        stages.add(
+            ValidationStage(stageName, failStrategy, failReason, SuspendPredicate(predicate))
         )
     }
 
@@ -94,14 +113,45 @@ class ValidationScheme<T>(private val schemeName: String, private val factory: (
             val reason = stage.failReason ?: failReason
 
             val passed = try {
-                stage.predicate(instance)
+                stage.predicate.check(instance)
             } catch (e: Exception) {
-                Logger.error { "Error during validation check of '$schemeName' ($name) for target=$target" }
-                return ValidationResult.Error(strategy, reason, e)
+                Logger.error { "Error during validation check of '$schemeName' ($name) for target=$target: ${e.message}" }
+                return ValidationResult.Error(strategy, reason, name, e)
             }
 
             if (!passed) {
-                return ValidationResult.Failed(strategy, reason)
+                return ValidationResult.Failed(strategy, reason, name)
+            }
+        }
+
+        return ValidationResult.Passed
+    }
+
+    /**
+     * Suspended version of [require].
+     *
+     * This executes the predicate function in suspendable context.
+     */
+    suspend fun validateSuspend(
+        failStrategy: FailStrategy = FailStrategy.Cancel,
+        failReason: String = "[Not specified]"
+    ): ValidationResult {
+        val instance = factory()
+
+        for ((index, stage) in stages.withIndex()) {
+            val name = if (stage.name.isEmpty()) "stage-$index" else "stage-$index: ${stage.name}"
+            val strategy = stage.failStrategy ?: failStrategy
+            val reason = stage.failReason ?: failReason
+
+            val passed = try {
+                stage.predicate.checkSuspend(instance)
+            } catch (e: Exception) {
+                Logger.error { "Error during validation check of '$schemeName' ($name) for target=$target" }
+                return ValidationResult.Error(strategy, reason, name, e)
+            }
+
+            if (!passed) {
+                return ValidationResult.Failed(strategy, reason, name)
             }
         }
 
