@@ -1,5 +1,6 @@
 package user
 
+import CHANGE_ME_TEST_DB_NAME
 import com.mongodb.assertions.Assertions.assertFalse
 import com.mongodb.kotlin.client.coroutine.MongoClient
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
@@ -127,7 +128,7 @@ class TestDefaultAuthProvider {
 
     private suspend fun initMongo(): MongoDatabase {
         val mongoc = MongoClient.create("mongodb://localhost:27017")
-        val db = mongoc.getDatabase("test")
+        val db = mongoc.getDatabase(CHANGE_ME_TEST_DB_NAME)
         db.runCommand(Document("ping", 1))
         return db
     }

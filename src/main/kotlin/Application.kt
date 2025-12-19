@@ -54,6 +54,8 @@ import kotlin.time.Duration.Companion.seconds
 
 fun main(args: Array<String>) = EngineMain.main(args)
 
+const val CHANGE_ME_PROD_DB_NAME = "CHANGE_ME-prod-DB"
+
 @Suppress("unused")
 suspend fun Application.module() {
     /* 1. Setup logger */
@@ -133,7 +135,7 @@ suspend fun Application.module() {
 
     /* 6. Configure Database */
     val database = startMongo(
-        databaseName = "changeme",
+        databaseName = CHANGE_ME_PROD_DB_NAME,
         mongoUrl = config().getString("mongo.url", "mongodb://localhost:27017"),
         adminEnabled = config().getBoolean("game.enableAdmin", true)
     )
