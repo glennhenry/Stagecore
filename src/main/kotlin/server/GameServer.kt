@@ -6,23 +6,21 @@ import context.ServerContext
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
 import io.ktor.util.date.*
-import io.ktor.utils.io.*
 import kotlinx.coroutines.*
+import server.core.Server
 import server.core.network.Connection
 import server.core.network.DefaultConnection
-import server.core.Server
 import server.handler.DefaultHandler
 import server.messaging.DefaultHandlerContext
-import server.messaging.format.DefaultMessage
 import server.messaging.SocketMessage
 import server.messaging.SocketMessageDispatcher
-import server.protocol.codec.DefaultCodec
+import server.messaging.format.DefaultMessage
 import server.protocol.MessageFormat
+import server.protocol.codec.DefaultCodec
 import server.tasks.TaskName
 import utils.functions.safeAsciiString
 import utils.logging.Logger
 import utils.logging.Logger.LOG_INDENT_PREFIX
-import java.net.SocketException
 import kotlin.system.measureTimeMillis
 
 data class GameServerConfig(
@@ -127,27 +125,10 @@ class GameServer(private val config: GameServerConfig) : Server {
                         }
                     }
                 }
-            } catch (_: ClosedByteChannelException) {
-                Logger.info { "Client ${connection.remoteAddress} disconnected abruptly (connection reset)" }
-            } catch (e: SocketException) {
-                when {
-                    e.message?.contains("Connection reset") == true -> {
-                        Logger.info { "Client ${connection.remoteAddress} connection was reset by peer" }
-                    }
-
-                    e.message?.contains("Broken pipe") == true -> {
-                        Logger.info { "Client ${connection.remoteAddress} connection broken (broken pipe)" }
-                    }
-
-                    else -> {
-                        Logger.warn { "Socket exception for ${connection.remoteAddress}: ${e.message}" }
-                    }
-                }
             } catch (e: Exception) {
-                Logger.error { "Unexpected error in socket for ${connection.remoteAddress}: $e" }
-                e.printStackTrace()
+                Logger.error { "Exception in client socket $connection: $e" }
             } finally {
-                Logger.info { "Cleaning up connection for ${connection.remoteAddress}" }
+                Logger.info { "Cleaning up $connection" }
 
                 // Only perform cleanup if playerId is set (client was authenticated)
                 if (connection.playerId != "[Undetermined]") {
