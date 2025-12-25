@@ -8,9 +8,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import server.core.network.TestConnection
-import server.messaging.HandlerContext
+import server.handler.HandlerContext
 import server.messaging.SocketMessage
-import server.messaging.SocketMessageHandler
+import server.handler.SocketMessageHandler
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

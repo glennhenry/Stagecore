@@ -1,8 +1,8 @@
-package server.handler
+package server.handler.impl
 
-import server.messaging.HandlerContext
+import server.handler.HandlerContext
+import server.handler.SocketMessageHandler
 import server.messaging.SocketMessage
-import server.messaging.SocketMessageHandler
 import utils.logging.Logger
 
 /**

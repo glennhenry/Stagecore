@@ -6,7 +6,7 @@ import data.Database
 import data.EmptyDatabase
 import devtools.cmd.core.CommandDispatcher
 import server.core.OnlinePlayerRegistry
-import server.protocol.MessageFormatFinder
+import server.messaging.format.MessageFormatFinder
 import server.tasks.ServerTaskDispatcher
 import user.EmptyPlayerAccountRepository
 import user.PlayerAccountRepository

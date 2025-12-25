@@ -1,7 +1,7 @@
 package example
 
 import com.mongodb.assertions.Assertions.assertFalse
-import server.protocol.SocketCodec
+import server.messaging.codec.SocketCodec
 import kotlin.test.*
 
 /**

@@ -10,13 +10,13 @@ import kotlinx.coroutines.*
 import server.core.Server
 import server.core.network.Connection
 import server.core.network.DefaultConnection
-import server.handler.DefaultHandler
-import server.messaging.DefaultHandlerContext
+import server.handler.impl.DefaultHandler
+import server.handler.DefaultHandlerContext
 import server.messaging.SocketMessage
 import server.messaging.SocketMessageDispatcher
 import server.messaging.format.DefaultMessage
-import server.protocol.MessageFormat
-import server.protocol.codec.DefaultCodec
+import server.messaging.format.MessageFormat
+import server.messaging.codec.DefaultCodec
 import server.tasks.TaskName
 import utils.functions.safeAsciiString
 import utils.logging.Logger

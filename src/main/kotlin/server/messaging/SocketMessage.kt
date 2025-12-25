@@ -1,7 +1,7 @@
 package server.messaging
 
-import server.protocol.MessageFormat
-import server.protocol.SocketCodec
+import server.messaging.format.MessageFormat
+import server.messaging.codec.SocketCodec
 
 /**
  * Represents a decoded (non-raw) socket message whose raw bytes have already been

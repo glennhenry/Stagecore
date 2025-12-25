@@ -1,4 +1,6 @@
-package server.messaging
+package server.handler
+
+import server.messaging.SocketMessage
 
 /**
  * A template for socket message handler.
@@ -7,7 +9,7 @@ interface SocketMessageHandler {
     val name: String
 
     /**
-     * To determine whether the handler should handle the given [SocketMessage].
+     * To determine whether the handler should handle the given [server.messaging.SocketMessage].
      */
     fun <T> match(message: SocketMessage<T>): Boolean
 

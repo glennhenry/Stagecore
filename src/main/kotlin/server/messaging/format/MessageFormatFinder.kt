@@ -1,4 +1,4 @@
-package server.protocol
+package server.messaging.format
 
 import utils.logging.Logger
 

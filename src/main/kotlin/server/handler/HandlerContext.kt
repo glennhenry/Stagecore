@@ -1,4 +1,6 @@
-package server.messaging
+package server.handler
+
+import server.messaging.SocketMessage
 
 /**
  * Encapsulate objects and data needed by handlers to handle message.

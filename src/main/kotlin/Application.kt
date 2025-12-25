@@ -36,7 +36,7 @@ import server.GameServerConfig
 import server.ServerContainer
 import server.core.OnlinePlayerRegistry
 import server.core.Server
-import server.protocol.MessageFormatFinder
+import server.messaging.format.MessageFormatFinder
 import server.tasks.ServerTaskDispatcher
 import user.PlayerAccountRepositoryMongo
 import user.auth.DefaultAuthProvider

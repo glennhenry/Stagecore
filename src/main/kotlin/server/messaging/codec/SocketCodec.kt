@@ -1,6 +1,4 @@
-package server.protocol
-
-import server.messaging.SocketMessage
+package server.messaging.codec
 
 /**
  * Defines a codec responsible for translating messages between raw [ByteArray] data
@@ -16,7 +14,7 @@ import server.messaging.SocketMessage
  * serialization logic in one place.
  *
  * Conceptually, [SocketCodec] acts as the bridge that wires raw socket
- * bytes into higher-level [SocketMessage] objects for handlers to process.
+ * bytes into higher-level [server.messaging.SocketMessage] objects for handlers to process.
  */
 interface SocketCodec<T> {
     /**

@@ -1,6 +1,5 @@
-package server.protocol.codec
+package server.messaging.codec
 
-import server.protocol.SocketCodec
 import utils.functions.safeAsciiString
 
 /**
@@ -20,7 +19,7 @@ object DefaultSerializer {
 }
 
 /**
- * The default and example implementation of [server.protocol.SocketCodec].
+ * The default and example implementation of [SocketCodec].
  *
  * It delegates codec work into [DefaultSerializer], where actual serializer logic
  * is implemented.

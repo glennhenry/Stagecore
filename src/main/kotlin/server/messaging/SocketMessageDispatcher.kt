@@ -1,6 +1,7 @@
 package server.messaging
 
-import server.handler.DefaultHandler
+import server.handler.impl.DefaultHandler
+import server.handler.SocketMessageHandler
 import utils.logging.Logger
 import utils.logging.Logger.LOG_INDENT_PREFIX
 

@@ -6,7 +6,7 @@ import data.collection.PlayerAccount
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.StandardTestDispatcher
 import server.core.network.TestConnection
-import server.messaging.DefaultHandlerContext
+import server.handler.DefaultHandlerContext
 import server.messaging.SocketMessage
 
 /**
