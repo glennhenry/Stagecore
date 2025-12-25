@@ -3,9 +3,9 @@ package server.protocol
 import utils.logging.Logger
 
 /**
- * Track message format and their codecs, then dispatch a given raw bytes to capable codecs.
+ * Track message format and their codecs.
  */
-class SocketCodecDispatcher {
+class MessageFormatFinder {
     private val formats = mutableListOf<MessageFormat<*>>()
 
     fun <T> register(format: MessageFormat<T>) {
@@ -13,9 +13,9 @@ class SocketCodecDispatcher {
     }
 
     /**
-     * Find the capable codecs for the raw bytes [data].
+     * Detect the possible [MessageFormat] for raw bytes [data].
      */
-    fun findCodecFor(data: ByteArray): List<MessageFormat<*>> {
+    fun detectMessageFormat(data: ByteArray): List<MessageFormat<*>> {
         lateinit var default: MessageFormat<*>
         val matched = mutableListOf<MessageFormat<*>>()
         val peek = data.take(20)

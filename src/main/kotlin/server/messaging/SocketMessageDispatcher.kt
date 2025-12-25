@@ -27,11 +27,15 @@ class SocketMessageDispatcher() {
             Logger.debug {
                 buildString {
                     appendLine("[SOCKET DISPATCH]")
+                    appendLine("$LOG_INDENT_PREFIX msg (str) : $msg")
                     appendLine("$LOG_INDENT_PREFIX handlers  :")
-                    selected.forEach {
-                        appendLine("$LOG_INDENT_PREFIX   - ${it.name}")
+                    selected.forEachIndexed { index, handler ->
+                        if (index == selected.lastIndex) {
+                            append("$LOG_INDENT_PREFIX   - ${handler.name}")
+                        } else {
+                            appendLine("$LOG_INDENT_PREFIX   - ${handler.name}")
+                        }
                     }
-                    append("$LOG_INDENT_PREFIX message   : $msg")
                 }
             }
         }

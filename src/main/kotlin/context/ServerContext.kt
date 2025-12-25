@@ -6,7 +6,7 @@ import data.Database
 import data.EmptyDatabase
 import devtools.cmd.core.CommandDispatcher
 import server.core.OnlinePlayerRegistry
-import server.protocol.SocketCodecDispatcher
+import server.protocol.MessageFormatFinder
 import server.tasks.ServerTaskDispatcher
 import user.EmptyPlayerAccountRepository
 import user.PlayerAccountRepository
@@ -36,7 +36,7 @@ data class ServerContext(
     val authProvider: AuthProvider,
     val onlinePlayerRegistry: OnlinePlayerRegistry,
     val contextTracker: ContextTracker,
-    val codecDispatcher: SocketCodecDispatcher,
+    val codecDispatcher: MessageFormatFinder,
     val taskDispatcher: ServerTaskDispatcher,
     val commandDispatcher: CommandDispatcher,
     val wsManager: WebSocketManager,
@@ -50,7 +50,7 @@ data class ServerContext(
          * [PlayerAccountRepository], and [AuthProvider].
          *
          * By default, the [FakeContextTracker] is used, while all other components
-         * (e.g. [SessionManager], [OnlinePlayerRegistry], [SocketCodecDispatcher], and
+         * (e.g. [SessionManager], [OnlinePlayerRegistry], [MessageFormatFinder], and
          * [ServerTaskDispatcher]) are initialized with their default implementations.
          */
         fun fake(
@@ -66,7 +66,7 @@ data class ServerContext(
                 authProvider = authProvider,
                 onlinePlayerRegistry = OnlinePlayerRegistry(),
                 contextTracker = contextTracker,
-                codecDispatcher = SocketCodecDispatcher(),
+                codecDispatcher = MessageFormatFinder(),
                 taskDispatcher = ServerTaskDispatcher(),
                 commandDispatcher = CommandDispatcher(Logger),
                 wsManager = WebSocketManager(),

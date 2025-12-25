@@ -110,15 +110,16 @@ class GameServer(private val config: GameServerConfig) : Server {
                     serverContext.onlinePlayerRegistry.updateLastActivity(connection.playerId)
 
                     // start handle
-                    var msgType = "[Undetermined]"
+                    var msgType = listOf("[Undetermined]")
                     val elapsed = measureTimeMillis {
                         msgType = handleMessage(connection, data)
                     }
+
                     // end handle
                     Logger.debug {
                         buildString {
                             appendLine("<===== [SOCKET END]")
-                            appendLine("$LOG_INDENT_PREFIX type      : $msgType")
+                            appendLine("$LOG_INDENT_PREFIX types     : ${msgType.joinToString(", ")}")
                             appendLine("$LOG_INDENT_PREFIX playerId  : ${connection.playerId}")
                             appendLine("$LOG_INDENT_PREFIX duration  : ${elapsed}ms")
                             append("====================================================================================================")
@@ -128,7 +129,7 @@ class GameServer(private val config: GameServerConfig) : Server {
             } catch (e: Exception) {
                 Logger.error { "Exception in client socket $connection: $e" }
             } finally {
-                Logger.info { "Cleaning up $connection" }
+                Logger.info { "Cleaning up for $connection" }
 
                 // Only perform cleanup if playerId is set (client was authenticated)
                 if (connection.playerId != "[Undetermined]") {
@@ -144,65 +145,77 @@ class GameServer(private val config: GameServerConfig) : Server {
     }
 
     /**
-     * Handle message from [Connection] with bytes [data] by:
+     * Handle message from [Connection] with raw bytes [data] by:
      *
-     * 1. Infer message format.
-     * 2. Find codecs for it.
-     * 3. Construct high-level [SocketMessage].
-     * 4. Find socket handlers for it.
+     * 1. Find codecs that can decode it.
+     * 2. Construct the high-level [SocketMessage] for the data.
+     * 3. Find socket handlers responsible for handling the message.
      *
      * ```
-     * raw bytes -> codec.tryDecode() -> payload (T)
-     * payload -> messageFactory(payload) -> SocketMessage<T>
-     * SocketMessage -> HandlerContext
+     * data -> detectMessageFormat(data) -> codec.tryDecode(data) -> payload (T)
+     * payload (T) -> messageFactory(payload) -> SocketMessage<T>
+     * SocketMessage<T> -> findHandlerFor(socketMessage) -> handlers
+     * handlers.forEach.handle(msg)
      * ```
      *
-     * It is possible that multiple codec decoded the message. If such thing happened,
-     * the first codec (by registration order) that successfully decoded it will be used.
+     * - It's possible that for the same data, multiple codecs successfully decoded it.
+     *   In this case, each codec may construct different `SocketMessage`, and all
+     *   different interpretation will be passed to handlers.
+     * - This phenomenon is somewhat vague, whether it's intended or not,
+     *   so whenever it happened, there will be warning.
+     * - Multiple handlers handling the same message is completely normal.
      *
-     * @return The type of message being handled.
+     * @return The various types of message decoded successfully, used merely
+     *         to mark the end of socket dispatchment.
      */
-    private suspend fun handleMessage(connection: Connection, data: ByteArray): String {
+    private suspend fun handleMessage(connection: Connection, data: ByteArray): List<String> {
         if (data.isEmpty()) {
             Logger.debug { "===== [SOCKET] Ignored empty byte array from connection=$connection" }
-            return "[Empty data]"
+            return listOf("[Empty data]")
         }
 
-        // codecs that successfully verify the format
-        val potentialFormats = serverContext.codecDispatcher.findCodecFor(data)
-        // list of msgType to codec that successfully deserialize and transform the message
-        val goodCodecs = mutableListOf<Pair<String, MessageFormat<Any>>>()
+        Logger.debug {
+            buildString {
+                appendLine("=====> [SOCKET RECEIVE]")
+                appendLine("$LOG_INDENT_PREFIX playerId  : ${connection.playerId}")
+                appendLine("$LOG_INDENT_PREFIX bytes     : ${data.size}")
+                append("$LOG_INDENT_PREFIX raw       : ${data.safeAsciiString()}")
+            }
+        }
+
+        // identify what format this message is
+        val potentialFormats = serverContext.codecDispatcher.detectMessageFormat(data)
+        // keep track the right codec that successfully deserialized the message
+        val matchedFormats = mutableListOf<Pair<String, MessageFormat<Any>>>()
 
         for (format in potentialFormats) {
             try {
                 @Suppress("UNCHECKED_CAST")
-                // for each potential codec, try decoding
+                // for each potential format, tell its codec to try to decode
                 val deserialized = (format as MessageFormat<Any>).codec.tryDecode(data)
                 if (deserialized == null) {
                     Logger.debug { "Codec ${format.codec.name} verified successfully but failed to deserialize data, unexpected format mismatch occurred in the middle." }
                     continue
                 }
 
-                // if decode success and message is not empty, construct the SocketMessage
+                // if decode succeeded and message is not empty, construct the SocketMessage representation
                 val message = format.messageFactory(deserialized)
                 if (message.isEmpty()) {
-                    Logger.debug { "===== [SOCKET] Ignored empty message from connection=$connection, raw: $message" }
+                    Logger.debug { "[SOCKET IGNORE] Ignored empty message from connection=$connection, raw: $message" }
                     continue
                 }
 
+                // log each decoding result
                 val msgType = message.type()
                 Logger.debug {
                     buildString {
-                        appendLine("=====> [SOCKET RECEIVE]")
+                        appendLine("[SOCKET DECODE]")
                         appendLine("$LOG_INDENT_PREFIX type      : $msgType")
-                        appendLine("$LOG_INDENT_PREFIX playerId  : ${connection.playerId}")
-                        appendLine("$LOG_INDENT_PREFIX bytes     : ${data.size}")
-                        appendLine("$LOG_INDENT_PREFIX codec     : ${format.codec.name}")
-                        append("$LOG_INDENT_PREFIX raw       : ${data.safeAsciiString()}")
+                        append("$LOG_INDENT_PREFIX codec     : ${format.codec.name}")
                     }
                 }
 
-                goodCodecs.add(msgType to format)
+                matchedFormats.add(msgType to format)
 
                 // pass the SocketMessage to handlers
                 val handlerContext = DefaultHandlerContext(connection, connection.playerId, message)
@@ -211,20 +224,20 @@ class GameServer(private val config: GameServerConfig) : Server {
                 }
             } catch (e: Exception) {
                 Logger.error { "Codec ${format.codec.name} error during decoding; e: $e" }
-                return "[Decode error]"
+                return listOf("[Decode error]")
             }
         }
 
-        if (goodCodecs.size > 1) {
+        if (matchedFormats.size > 1) {
             Logger.warn {
                 buildString {
-                    appendLine("Found multiple codec that successfully decoded the same data: ${goodCodecs.joinToString { "${it.second.codec.name}, " }}")
-                    appendLine("Parsed msg type (in the same order): ${goodCodecs.joinToString { "${it.first}, " }}")
+                    appendLine("Found multiple codec that successfully decoded the same data: ${matchedFormats.joinToString { "${it.second.codec.name}, " }}")
+                    appendLine("Parsed msg type (in the same order): ${matchedFormats.joinToString { "${it.first}, " }}")
                 }
             }
         }
 
-        return goodCodecs.first().first
+        return matchedFormats.map { it.first }
     }
 
     override suspend fun shutdown() {
