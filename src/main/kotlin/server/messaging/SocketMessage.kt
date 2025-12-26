@@ -16,7 +16,8 @@ import server.messaging.codec.SocketCodec
  * - A JSON message might produce `SocketMessage<Map<String, Any?>>`
  *
  * Implementations may also provide additional context, such as a message type
- * identifier returned by [type].
+ * identifier returned by [type], which can later be used by handlers to determine
+ * whether to handle the message or not.
  *
  * @param T The type of the decoded payload, as determined by the message format.
  */

@@ -6,11 +6,11 @@ import server.messaging.SocketMessage
 /**
  * Default handler context where send implementation is based on [Connection] object.
  */
-class DefaultHandlerContext(
+class DefaultHandlerContext<T>(
     private val connection: Connection,
     override val playerId: String,
-    override val message: SocketMessage<*>
-) : HandlerContext {
+    override val message: SocketMessage<T>
+) : HandlerContext<T> {
     override suspend fun sendRaw(raw: ByteArray, logOutput: Boolean, logFull: Boolean) {
         connection.write(raw, logOutput, logFull)
     }

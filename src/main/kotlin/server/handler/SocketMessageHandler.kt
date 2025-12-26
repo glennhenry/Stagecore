@@ -4,19 +4,27 @@ import server.messaging.SocketMessage
 
 /**
  * A template for socket message handler.
+ *
+ * Each handler is expected to:
+ * - Declare the message type it handles via [SocketMessageHandler.messageType]
+ * - Declare the expected payload type via its generic parameter `T`
+ *
+ * The dispatcher will route incoming [SocketMessage] instances to handlers
+ * based on the message's [SocketMessage.type], and will provide a
+ * [HandlerContext]`<T>` whose payload type matches the handler's expectation.
+ *
+ * Handler matching behavior:
+ * - The default [match] implementation routes messages based on their
+ *   [SocketMessage.type].
+ * - Handlers should override [match] only when type-based matching is insufficient.
  */
-interface SocketMessageHandler {
+interface SocketMessageHandler<T> {
     val name: String
+    val messageType: String
 
-    /**
-     * To determine whether the handler should handle the given [server.messaging.SocketMessage].
-     */
-    fun <T> match(message: SocketMessage<T>): Boolean
+    fun match(message: SocketMessage<*>): Boolean {
+        return message.type() == messageType
+    }
 
-    /**
-     * Handle the socket message with the given [HandlerContext].
-     *
-     * Handler may send message to client multiple times using the `send` function.
-     */
-    suspend fun handle(ctx: HandlerContext)
+    suspend fun handle(ctx: HandlerContext<T>)
 }

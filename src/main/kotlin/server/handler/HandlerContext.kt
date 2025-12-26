@@ -7,10 +7,11 @@ import server.messaging.SocketMessage
  *
  * @property playerId The player in-game unique identifier.
  * @property message Representation of decoded socket message.
+ * @param T Type of [SocketMessage.payload] which the handler operates on.
  */
-interface HandlerContext {
+interface HandlerContext<T> {
     val playerId: String
-    val message: SocketMessage<*>
+    val message: SocketMessage<T>
 
     /**
      * Send the client [raw] (non-serialized) bytes.
