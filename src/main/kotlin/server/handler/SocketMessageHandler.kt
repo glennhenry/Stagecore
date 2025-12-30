@@ -20,11 +20,26 @@ import server.messaging.SocketMessage
  */
 interface SocketMessageHandler<T> {
     val name: String
+
+    /**
+     * Message type or identifier the handler is supposed to handle.
+     */
     val messageType: String
 
+    /**
+     * Whether the handle should handle this socket message.
+     * Default implementation matches defined [messageType]
+     * with the type of received socket message.
+     */
     fun match(message: SocketMessage<*>): Boolean {
         return message.type() == messageType
     }
 
+    /**
+     * Handle the socket message.
+     *
+     * @param ctx Context of handler, included with the socket message
+     * and [HandlerContext.sendRaw] method.
+     */
     suspend fun handle(ctx: HandlerContext<T>)
 }
