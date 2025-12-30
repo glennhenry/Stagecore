@@ -233,8 +233,8 @@ class GameServer(private val config: GameServerConfig) : Server {
         if (matchedFormats.size > 1) {
             Logger.warn {
                 buildString {
-                    appendLine("Found multiple codec that successfully decoded the same data: ${matchedFormats.joinToString { "${it.second.codec.name}, " }}")
-                    appendLine("Parsed msg type (in the same order): ${matchedFormats.joinToString { "${it.first}, " }}")
+                    appendLine("Found multiple codec that successfully decoded the same data: ${matchedFormats.joinToString { it.second.codec.name }}")
+                    append("$LOG_INDENT_PREFIX Parsed msg type (in the same order): ${matchedFormats.joinToString { it.first }}")
                 }
             }
         }

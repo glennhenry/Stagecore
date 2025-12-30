@@ -20,7 +20,10 @@ class MessageFormatFinder {
         val matched = mutableListOf<MessageFormat<*, *>>()
 
         for (format in formats) {
-            if (format.codec.name == "DefaultCodec") default = format
+            if (format.codec.name == "DefaultCodec") {
+                default = format
+                continue
+            }
             try {
                 val verifySuccess = format.codec.verify(data)
                 if (verifySuccess) {
