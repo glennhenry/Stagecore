@@ -5,8 +5,6 @@ package annotation
  * or expected to be revisited, redesigned, or replaced later.
  *
  * This annotation highlight technical debt, temporary workarounds, or unfinished logic.
- *
- * @property message An optional note explaining why this code needs revisiting.
  */
 @Retention(AnnotationRetention.SOURCE)
-annotation class RevisitLater(val message: String)
+annotation class RevisitLater(val message: String = "")
