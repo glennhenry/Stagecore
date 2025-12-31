@@ -1,13 +1,17 @@
 package server.handler
 
 import server.messaging.SocketMessage
+import server.messaging.codec.SocketCodec
+import server.messaging.format.MessageFormat
 
 /**
  * A template for socket message handler.
  *
  * Each handler is expected to:
  * - Declare the message type it handles via [SocketMessageHandler.messageType]
- * - Declare the expected payload type via its generic parameter `T`
+ * - Declare the expected payload type via its generic parameter `T`.
+ *   The payload type is typically the same type as [SocketMessage]
+ *   implemention, along with their corresponding [SocketCodec] and [MessageFormat].
  *
  * The dispatcher will route incoming [SocketMessage] instances to handlers
  * based on the message's [SocketMessage.type], and will provide a

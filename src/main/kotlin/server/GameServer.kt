@@ -153,9 +153,9 @@ class GameServer(private val config: GameServerConfig) : Server {
      * 3. Find socket handlers responsible for handling the message.
      *
      * ```
-     * data -> detectMessageFormat(data) -> codec.tryDecode(data) -> payload (T)
-     * payload (T) -> messageFactory(payload) -> SocketMessage<T>
-     * SocketMessage<T> -> findHandlerFor(socketMessage) -> handlers
+     * data -> detectMessageFormat(data) -> codec.tryDecode(data) -> payload (Raw)
+     * payload (Raw) -> messageFactory(payload) -> SocketMessage<Payload>
+     * SocketMessage<Payload> -> findHandlerFor(socketMessage) -> handlers
      * handlers.forEach.handle(msg)
      * ```
      *
