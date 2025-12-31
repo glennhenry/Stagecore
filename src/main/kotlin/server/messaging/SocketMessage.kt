@@ -4,22 +4,21 @@ import server.messaging.format.MessageFormat
 import server.messaging.codec.SocketCodec
 
 /**
- * Represents a decoded (non-raw) socket message whose raw bytes have already been
- * deserialized into a structured [payload], ready to be processed by message handlers.
+ * Represents a decoded (non-raw) socket message whose raw bytes have been
+ * deserialized into a structured [payload], ready for processing by message handlers.
  *
- * Implementation simply provides a typed container for the decoded payload.
- * The structure of [payload] are defined by the [MessageFormat]
- * and its corresponding [SocketCodec] implementation.
+ * Implementations act as typed containers for the decoded payload.
+ * The structure of [payload] is determined by the associated [MessageFormat]
+ * and its [SocketCodec] implementation.
  *
  * For example:
  * - A delimited text message might produce `SocketMessage<List<String>>`
  * - A JSON message might produce `SocketMessage<Map<String, Any?>>`
  *
- * Implementations may also provide additional context, such as a message type
- * identifier returned by [type], which can later be used by handlers to determine
- * whether to handle the message or not.
+ * Implementations may also provide metadata such as a message type identifier
+ * returned by [type], which handlers use to determine whether to process the message.
  *
- * @param T The type of the decoded payload, as determined by the message format.
+ * @param T The type of the decoded payload, as defined by the message format.
  */
 interface SocketMessage<T> {
     /**

@@ -5,46 +5,61 @@ import server.messaging.codec.SocketCodec
 import server.messaging.format.MessageFormat
 
 /**
- * A template for socket message handler.
+ * Template for a socket message handler.
  *
  * Each handler is expected to:
- * - Declare the message type it handles via [SocketMessageHandler.messageType]
- * - Declare the expected payload type via its generic parameter `T`.
- *   The payload type is typically the same type as [SocketMessage]
- *   implemention, along with their corresponding [SocketCodec] and [MessageFormat].
+ * - Declare the message type it handles via [messageType]
+ * - Specify the expected payload type through its generic parameter `T`.
+ *   The payload type typically corresponds to the [SocketMessage] implementation
+ *   and aligns with the associated [SocketCodec] and [MessageFormat].
  *
- * The dispatcher will route incoming [SocketMessage] instances to handlers
- * based on the message's [SocketMessage.type], and will provide a
+ * Incoming [SocketMessage] instances are routed to handlers by the dispatcher
+ * based on the message's [SocketMessage.type]. Handlers receive a
  * [HandlerContext]`<T>` whose payload type matches the handler's expectation.
  *
  * Handler matching behavior:
- * - The default [shouldHandle] implementation routes messages based on their
- *   [SocketMessage.type].
- * - Handlers should override [shouldHandle] only when type-based matching is insufficient.
+ * - The default [shouldHandle] implementation routes messages by comparing
+ *   the message's type with [messageType].
+ * - Override [shouldHandle] only if type-based matching is insufficient.
+ *
+ * **Important:** The generic type parameter `T` is **advisory only**.
+ * It represents the expected payload type, but the dispatcher does **not**
+ * enforce it at runtime. This means a handler declaring `T = List<Any>`
+ * could actually receive a payload of type `Map<String, Any>` if the
+ * underlying [SocketMessage] produced that structure. This can happen
+ * because handler dispatch relies solely on the message type, not on
+ * the generic payload type.
+ *
+ * @param T The type of payload this handler expects.
  */
 interface SocketMessageHandler<T> {
+    /**
+     * Human-readable name for the handler, mainly used for logging and debugging.
+     */
     val name: String
 
     /**
-     * Message type or identifier the handler is supposed to handle.
+     * Message type or identifier that this handler is responsible for.
      */
     val messageType: String
 
     /**
-     * Whether the handler should handle this socket message.
+     * Determines whether this handler should process the given [message].
      *
-     * Default implementation matches defined [messageType]
-     * with the type of received socket message.
+     * Default implementation compares the message's type with [messageType].
+     *
+     * @param message The socket message to evaluate.
+     * @return `true` if this handler should handle the message; otherwise `false`.
      */
     fun shouldHandle(message: SocketMessage<*>): Boolean {
         return message.type() == messageType
     }
 
     /**
-     * Handle the socket message.
+     * Handles the socket message.
      *
-     * @param ctx Context of handler, included with the socket message
-     * and [HandlerContext.sendRaw] method.
+     * @param ctx The handler context, containing the message, player ID,
+     * and [HandlerContext.sendRaw] method for sending responses.
      */
     suspend fun handle(ctx: HandlerContext<T>)
 }
