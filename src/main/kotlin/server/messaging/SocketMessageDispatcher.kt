@@ -48,14 +48,7 @@ class SocketMessageDispatcher {
             buildString {
                 appendLine("[SOCKET DISPATCH]")
                 appendLine("$LOG_INDENT_PREFIX msg (str) : $msg")
-                appendLine("$LOG_INDENT_PREFIX handlers  :")
-                selected.forEachIndexed { index, handler ->
-                    if (index == selected.lastIndex) {
-                        append("$LOG_INDENT_PREFIX   - ${handler.name}")
-                    } else {
-                        appendLine("$LOG_INDENT_PREFIX   - ${handler.name}")
-                    }
-                }
+                append("$LOG_INDENT_PREFIX handlers  : ${selected.joinToString { it.name }}")
             }
         }
     }
