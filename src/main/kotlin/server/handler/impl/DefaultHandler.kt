@@ -12,15 +12,16 @@ import server.messaging.format.DefaultMessage
  *
  * This handler works together with [DefaultCodec] and [DefaultMessage].
  */
-class DefaultHandler : SocketMessageHandler<String> {
+class DefaultHandler : SocketMessageHandler<DefaultMessage> {
     override val name: String = "DefaultHandler"
     override val messageType: String = "Default"
+    override val expectedMessageClass: Class<out SocketMessage> = DefaultMessage::class.java
 
-    override fun shouldHandle(message: SocketMessage<*>): Boolean {
+    override fun shouldHandle(message: DefaultMessage): Boolean {
         return true
     }
 
-    override suspend fun handle(ctx: HandlerContext<String>) = with(ctx) {
+    override suspend fun handle(ctx: HandlerContext<DefaultMessage>) = with(ctx) {
         Logger.warn { "No handler registered/implemented for type=${message.type()}" }
     }
 }

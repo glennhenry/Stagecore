@@ -12,6 +12,7 @@ import server.core.network.Connection
 import server.core.network.DefaultConnection
 import server.handler.impl.DefaultHandler
 import server.handler.DefaultHandlerContext
+import server.handler.SocketMessageHandler
 import server.messaging.SocketMessage
 import server.messaging.SocketMessageDispatcher
 import server.messaging.format.DefaultMessage
@@ -55,14 +56,14 @@ class GameServer(private val config: GameServerConfig) : Server {
         )
         // register codec (serializer, deserializer) and message format
         // REPLACE
-        val possibleFormats = listOf<MessageFormat<*, *>>(
+        val possibleFormats = listOf<MessageFormat<*>>(
             MessageFormat(
                 codec = DefaultCodec(),
                 messageFactory = { DefaultMessage(it) }
-            )
+            ),
         )
         possibleFormats.forEach {
-            context.codecDispatcher.register(it)
+            context.formatRegistry.register(it)
         }
     }
 
@@ -153,9 +154,9 @@ class GameServer(private val config: GameServerConfig) : Server {
      * 3. Find socket handlers responsible for handling the message.
      *
      * ```
-     * data -> detectMessageFormat(data) -> codec.tryDecode(data) -> payload (Raw)
-     * payload (Raw) -> messageFactory(payload) -> SocketMessage<Payload>
-     * SocketMessage<Payload> -> findHandlerFor(socketMessage) -> handlers
+     * data -> detectMessageFormat(data) -> codec.tryDecode(data) -> payload (T)
+     * payload (T) -> messageFactory(payload) -> concrete SocketMessage<T>
+     * concrete SocketMessage<T> -> findHandlerFor(socketMessage) -> handlers
      * handlers.forEach.handle(msg)
      * ```
      *
@@ -171,7 +172,7 @@ class GameServer(private val config: GameServerConfig) : Server {
      */
     private suspend fun handleMessage(connection: Connection, data: ByteArray): List<String> {
         if (data.isEmpty()) {
-            Logger.debug { "===== [SOCKET] Ignored empty byte array from connection=$connection" }
+            Logger.debug { "[SOCKET] Ignored empty byte array from connection=$connection" }
             return listOf("[Empty data]")
         }
 
@@ -186,15 +187,15 @@ class GameServer(private val config: GameServerConfig) : Server {
         }
 
         // identify what format this message is
-        val potentialFormats = serverContext.codecDispatcher.detectMessageFormat(data)
+        val potentialFormats = serverContext.formatRegistry.detectMessageFormat(data)
         // keep track the right codec that successfully deserialized the message
-        val matchedFormats = mutableListOf<Pair<String, MessageFormat<Any, Any>>>()
+        val matchedFormats = mutableListOf<Pair<String, MessageFormat<Any>>>()
 
         for (format in potentialFormats) {
             try {
                 @Suppress("UNCHECKED_CAST")
                 // for each potential format, tell its codec to try to decode
-                val deserialized = (format as MessageFormat<Any, Any>).codec.tryDecode(data)
+                val deserialized = (format as MessageFormat<Any>).codec.tryDecode(data)
                 if (deserialized == null) {
                     Logger.debug { "Codec ${format.codec.name} verified successfully but failed to deserialize data, unexpected format mismatch occurred in the middle." }
                     continue
@@ -220,12 +221,15 @@ class GameServer(private val config: GameServerConfig) : Server {
                 matchedFormats.add(msgType to format)
 
                 // pass the SocketMessage to handlers
-                val handlerContext = DefaultHandlerContext(connection, connection.playerId, message)
                 socketDispatcher.findHandlerFor(message).forEach { handler ->
+                    @Suppress("UNCHECKED_CAST")
+                    handler as SocketMessageHandler<SocketMessage>
+
+                    val handlerContext = DefaultHandlerContext(connection, connection.playerId, message)
                     handler.handle(handlerContext)
                 }
             } catch (e: Exception) {
-                Logger.error { "Codec ${format.codec.name} error during decoding; e: $e" }
+                Logger.error { "Codec ${(format as MessageFormat<Any>).codec} error during decoding; e: $e" }
                 return listOf("[Decode error]")
             }
         }

@@ -1,31 +1,18 @@
 package server.messaging
 
-import server.messaging.format.MessageFormat
-import server.messaging.codec.SocketCodec
-
 /**
- * Represents a decoded (non-raw) socket message whose raw bytes have been
- * deserialized into a structured [payload], ready for processing by message handlers.
+ * Represents a decoded (non-raw) socket message ready for processing by message handlers.
  *
- * Implementations act as typed containers for the decoded payload.
- * The structure of [payload] is determined by the associated [MessageFormat]
- * and its [SocketCodec] implementation.
+ * Implementations act as **high-level message objects** that encapsulate the
+ * decoded data and any helper methods needed by handlers.
  *
- * For example:
- * - A delimited text message might produce `SocketMessage<List<String>>`
- * - A JSON message might produce `SocketMessage<Map<String, Any?>>`
- *
- * Implementations may also provide metadata such as a message type identifier
- * returned by [type], which handlers use to determine whether to process the message.
- *
- * @param T The type of the decoded payload, as defined by the message format.
+ * Examples:
+ * - A comma delimited text message might be represented as `CommaMessage`, providing
+ *   methods to access fields with `nextValue()`.
+ * - A JSON message might be represented as `JsonMessage`, providing typed
+ *   accessors for specific properties.
  */
-interface SocketMessage<T> {
-    /**
-     * The deserialized payload extracted from the raw socket data.
-     */
-    val payload: T
-
+interface SocketMessage {
     /**
      * Returns the logical type or identifier of this socket message.
      */

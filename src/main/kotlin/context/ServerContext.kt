@@ -6,7 +6,7 @@ import data.Database
 import data.EmptyDatabase
 import devtools.command.core.CommandDispatcher
 import server.core.OnlinePlayerRegistry
-import server.messaging.format.MessageFormatFinder
+import server.messaging.format.MessageFormatRegistry
 import server.tasks.ServerTaskDispatcher
 import user.EmptyPlayerAccountRepository
 import user.PlayerAccountRepository
@@ -25,7 +25,7 @@ import ws.WebSocketManager
  * @property authProvider Provides authentication functions.
  * @property onlinePlayerRegistry Keep tracks online status of each player.
  * @property contextTracker Tracks and manages each player's context.
- * @property codecDispatcher Dispatch and track the known message format and registered codecs
+ * @property formatRegistry Track the known message format and registered codecs
  *                           for network messages.
  * @property taskDispatcher Provide API to start and stop server-sided task.
  */
@@ -36,7 +36,7 @@ data class ServerContext(
     val authProvider: AuthProvider,
     val onlinePlayerRegistry: OnlinePlayerRegistry,
     val contextTracker: ContextTracker,
-    val codecDispatcher: MessageFormatFinder,
+    val formatRegistry: MessageFormatRegistry,
     val taskDispatcher: ServerTaskDispatcher,
     val commandDispatcher: CommandDispatcher,
     val wsManager: WebSocketManager,
@@ -50,7 +50,7 @@ data class ServerContext(
          * [PlayerAccountRepository], and [AuthProvider].
          *
          * By default, the [FakeContextTracker] is used, while all other components
-         * (e.g. [SessionManager], [OnlinePlayerRegistry], [MessageFormatFinder], and
+         * (e.g. [SessionManager], [OnlinePlayerRegistry], [MessageFormatRegistry], and
          * [ServerTaskDispatcher]) are initialized with their default implementations.
          */
         fun fake(
@@ -66,7 +66,7 @@ data class ServerContext(
                 authProvider = authProvider,
                 onlinePlayerRegistry = OnlinePlayerRegistry(),
                 contextTracker = contextTracker,
-                codecDispatcher = MessageFormatFinder(),
+                formatRegistry = MessageFormatRegistry(),
                 taskDispatcher = ServerTaskDispatcher(),
                 commandDispatcher = CommandDispatcher(Logger),
                 wsManager = WebSocketManager(),

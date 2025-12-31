@@ -36,7 +36,7 @@ import server.GameServerConfig
 import server.ServerContainer
 import server.core.OnlinePlayerRegistry
 import server.core.Server
-import server.messaging.format.MessageFormatFinder
+import server.messaging.format.MessageFormatRegistry
 import server.tasks.ServerTaskDispatcher
 import user.PlayerAccountRepositoryMongo
 import user.auth.DefaultAuthProvider
@@ -156,7 +156,7 @@ suspend fun Application.module() {
     val authProvider = DefaultAuthProvider(database, playerAccountRepository, sessionManager)
     val onlinePlayerRegistry = OnlinePlayerRegistry()
     val contextTracker = DefaultContextTracker()
-    val codecDispatcher = MessageFormatFinder()
+    val codecDispatcher = MessageFormatRegistry()
     val taskDispatcher = ServerTaskDispatcher()
     val commandDispatcher = CommandDispatcher(Logger)
     val wsManager = WebSocketManager()
@@ -168,7 +168,7 @@ suspend fun Application.module() {
         authProvider = authProvider,                       // is not used unless auth is implemented
         onlinePlayerRegistry = onlinePlayerRegistry,       // not much used typically
         contextTracker = contextTracker,
-        codecDispatcher = codecDispatcher,
+        formatRegistry = codecDispatcher,
         taskDispatcher = taskDispatcher,
         commandDispatcher = commandDispatcher,
         wsManager = wsManager,
