@@ -2,6 +2,7 @@ package server
 
 import SERVER_ADDRESS
 import SERVER_SOCKET_PORT
+import annotation.Untested
 import context.ServerContext
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
@@ -30,6 +31,12 @@ data class GameServerConfig(
     val port: Int = SERVER_SOCKET_PORT,
 )
 
+@Untested(
+    "Integration test: although codec, message format, dispatcher, connection, and handler " +
+            "have been tested individually, we need integration test that connects them all. " +
+            "Given arbitrary socket packet (in byte array), it should be decoded, " +
+            "dispatched, and handled correctly."
+)
 class GameServer(private val config: GameServerConfig) : Server {
     override val name: String = "GameServer"
 
@@ -229,7 +236,7 @@ class GameServer(private val config: GameServerConfig) : Server {
                     handler.handle(handlerContext)
                 }
             } catch (e: Exception) {
-                Logger.error { "Codec ${(format as MessageFormat<Any>).codec} error during decoding; e: $e" }
+                Logger.error { "Codec ${format.codec} error during decoding; e: $e" }
                 return listOf("[Decode error]")
             }
         }

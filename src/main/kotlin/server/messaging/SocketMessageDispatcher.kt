@@ -1,5 +1,6 @@
 package server.messaging
 
+import annotation.Untested
 import server.handler.impl.DefaultHandler
 import server.handler.SocketMessageHandler
 import utils.logging.Logger
@@ -13,7 +14,24 @@ import utils.logging.Logger.LOG_INDENT_PREFIX
  *
  * Dispatchment, by default, is done by matching handler's [SocketMessageHandler.messageType].
  * Handler may override matching behavior through [SocketMessageHandler.shouldHandle].
+ *
+ * **Note**: Under our socket and server architecture, it's possible that, one socket packet
+ * is matched by two different format (two codec) and produced into two different `SocketMessage`
+ * instance, which may have different type or different message format class.
+ * Then, multiple handlers with can match the two message (**as long as both have the same
+ * expected message class**). We do not test this behavior or decide whether it's wrong,
+ * as this is too specific and relating to domain. We delegate the opinion to each programmer.
+ * Our testing is limited to basic functionality and mitigating potential of exception.
  */
+@Untested(
+    "Test under various scenarios: " +
+            "1. [normal] One message type, one handler, one kind of expected message class." +
+            "2. [normal] One message type, two handler, one kind of expected message class." +
+            "3. [fail on register] One message type, one codec that produces one message format, " +
+            "two handler matching by the same type, but they expect different message class. " +
+            "This mean one of the two handler will receive a mismatched message class" +
+            "(unexpected runtime behavior, should fail fast)"
+)
 class SocketMessageDispatcher {
     private val handlers = mutableListOf<SocketMessageHandler<*>>()
     private val handlersByType = mutableMapOf<String, MutableList<SocketMessageHandler<*>>>()
