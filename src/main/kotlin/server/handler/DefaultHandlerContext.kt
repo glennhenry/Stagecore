@@ -8,7 +8,7 @@ import server.messaging.SocketMessage
  */
 class DefaultHandlerContext<T : SocketMessage>(
     private val connection: Connection,
-    override val playerId: String,
+    override var playerId: String,
     override val message: T
 ) : HandlerContext<T> {
     override suspend fun sendRaw(raw: ByteArray, logOutput: Boolean, logFull: Boolean) {
