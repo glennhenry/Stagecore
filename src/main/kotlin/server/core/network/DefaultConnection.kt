@@ -62,6 +62,10 @@ class DefaultConnection(
         }
     }
 
+    override fun updatePlayerId(playerId: String) {
+        this.playerId = playerId
+    }
+
     /**
      * Shutdown the connection which cancels the [connectionScope].
      */

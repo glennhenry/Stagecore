@@ -38,6 +38,11 @@ interface Connection {
     suspend fun write(input: ByteArray, logOutput: Boolean = true, logFull: Boolean = false)
 
     /**
+     * To update the playerId for this connection.
+     */
+    fun updatePlayerId(playerId: String)
+
+    /**
      * Closes the connection and releases any associated resources.
      */
     suspend fun shutdown()

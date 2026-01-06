@@ -1,6 +1,7 @@
 package server.handler
 
 import annotation.RevisitLater
+import server.core.network.Connection
 import server.messaging.SocketMessage
 
 /**
@@ -16,7 +17,7 @@ import server.messaging.SocketMessage
             "and actual received payload type"
 )
 interface HandlerContext<T : SocketMessage> {
-    var playerId: String
+    val playerId: String
     val message: T
 
     /**
@@ -26,4 +27,9 @@ interface HandlerContext<T : SocketMessage> {
      * by calling the appropriate serializer utility.
      */
     suspend fun sendRaw(raw: ByteArray, logOutput: Boolean = true, logFull: Boolean = false)
+
+    /**
+     * To update the playerId for this connection (usually goes through [Connection.updatePlayerId]).
+     */
+    fun updatePlayerId(playerId: String)
 }

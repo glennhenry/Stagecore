@@ -54,6 +54,10 @@ class TestConnection(
         writtenBytes += input
     }
 
+    override fun updatePlayerId(playerId: String) {
+        this.playerId = playerId
+    }
+
     override suspend fun shutdown() {
         incoming.close()
     }

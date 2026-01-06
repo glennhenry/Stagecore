@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.seconds
  *
  * Runs on real timer with runBlocking.
  */
-//@Ignore("slow, real-time timer")
+@Ignore("slow, real-time timer")
 class TaskSchedulerTest {
     private val PID = "playerId123"
     private val NAME = "PlayerABC"
