@@ -17,7 +17,7 @@ import server.messaging.SocketMessage
             "and actual received payload type"
 )
 interface HandlerContext<T : SocketMessage> {
-    val playerId: String
+    var playerId: String
     val message: T
 
     /**
