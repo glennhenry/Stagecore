@@ -200,6 +200,17 @@ suspend fun Application.module() {
         port = config().getInt("game.host", SERVER_SOCKET_PORT)
     )
 
+    val apiPort = config().getString("ktor.deployment.port", SERVER_API_FILE_PORT.toString())
+    Logger.info { "Server successfully started." }
+    Logger.info { "File/API server available at ${gameServerConfig.host}:$apiPort." }
+    Logger.info { "Devtools available at ${gameServerConfig.host}:$apiPort/devtools." }
+
+    if (File("docs/index.html").exists()) {
+        Logger.info { "Docs website available on ${gameServerConfig.host}:$apiPort." }
+    } else {
+        Logger.verbose { "Docs website not available. Optionally, run 'npm install' & 'npm run dev' in the docs folder to preview it." }
+    }
+
     val servers = buildList<Server> {
         add(GameServer(gameServerConfig))
     }
@@ -233,20 +244,11 @@ suspend fun Application.module() {
         }
     }
 
-    val apiPort = config().getString("ktor.deployment.port", SERVER_API_FILE_PORT.toString())
-    Logger.info { "API server available at ${gameServerConfig.host}:$apiPort" }
-
-    if (File("docs/index.html").exists()) {
-        Logger.info { "Docs website available on ${gameServerConfig.host}:$apiPort" }
-    } else {
-        Logger.verbose { "Docs website not available. Optionally, run 'npm install' & 'npm run dev' in the docs folder to preview it." }
-    }
-
     Runtime.getRuntime().addShutdownHook(Thread {
         runBlocking {
             container.shutdownAll()
         }
-        Logger.info { "Server shutdown complete" }
+        Logger.info { "Server shutdown complete." }
     })
 }
 
