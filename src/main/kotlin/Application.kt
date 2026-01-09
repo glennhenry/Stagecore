@@ -128,7 +128,8 @@ suspend fun Application.module() {
     /* 5. Install status pages */
     install(StatusPages) {
         exception<Throwable> { call, cause ->
-            Logger.error { "Server error: ${cause.message}" }
+            Logger.error { "Server error at ${call.request.httpMethod} ${call.request.uri}." }
+            cause.printStackTrace()
             call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
         }
         unhandled { call ->
