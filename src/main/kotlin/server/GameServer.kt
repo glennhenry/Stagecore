@@ -128,7 +128,7 @@ class GameServer(private val config: GameServerConfig) : Server {
                     Logger.debug {
                         buildString {
                             appendLine("<===== [SOCKET END]")
-                            appendLine("$LOG_INDENT_PREFIX types     : ${msgType.joinToString(", ")}")
+                            appendLine("$LOG_INDENT_PREFIX type      : ${msgType.joinToString(", ")}")
                             appendLine("$LOG_INDENT_PREFIX playerId  : ${connection.playerId}")
                             appendLine("$LOG_INDENT_PREFIX duration  : ${elapsed}ms")
                             append("====================================================================================================")
