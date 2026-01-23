@@ -10,13 +10,9 @@ import java.io.File
 
 fun Route.fileRoutes() {
     get("/") {
-        val indexFile = File("static/assets/index.html")
-        if (indexFile.exists()) {
-            call.respondFile(indexFile)
-        } else {
-            call.respond(HttpStatusCode.NotFound, "Index HTML not found")
-        }
+        call.respondFile(File("static/index.html"))
     }
+    staticFiles("site", File("static/site"))
 
     get("/docs") {
         val docsIndex = File("docs/index.html")
@@ -28,9 +24,4 @@ fun Route.fileRoutes() {
     }
 
     staticFiles("docs", File("docs"))
-
-    get("/favicon.ico") {
-        val favicon = File("static/assets/favicon.ico")
-        call.respondFile(favicon)
-    }
 }

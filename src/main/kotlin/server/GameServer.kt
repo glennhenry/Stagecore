@@ -83,9 +83,9 @@ class GameServer(private val config: GameServerConfig) : Server {
 
         Logger.info { "Socket server listening on ${config.host}:${config.port}" }
 
+        val selectorManager = SelectorManager(Dispatchers.IO)
         gameServerScope.launch {
             try {
-                val selectorManager = SelectorManager(Dispatchers.IO)
                 val serverSocket = aSocket(selectorManager).tcp().bind(config.host, config.port)
 
                 while (isActive) {
@@ -99,6 +99,9 @@ class GameServer(private val config: GameServerConfig) : Server {
                     Logger.info { "New client: ${connection.remoteAddress}" }
                     handleClient(connection)
                 }
+            } catch (e: CancellationException) {
+                Logger.debug { "Game server coroutine cancelled (shutdown)" }
+                throw e
             } catch (e: Exception) {
                 Logger.error { "ERROR on server: $e" }
                 shutdown()
