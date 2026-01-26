@@ -1,35 +1,45 @@
 package example
 
 import com.mongodb.assertions.Assertions.assertFalse
-import server.messaging.codec.SocketCodec
+import server.messaging.format.DecodeResult
+import server.messaging.format.MessageFormat
+import server.messaging.socket.SocketMessage
 import kotlin.test.*
 
 /**
- * Demonstrate an example to test codec and message format.
+ * Demonstrate an example to test message format.
  */
 class ExampleCodecTest {
     @Test
-    fun `test verify codec success`() {
-        val codec = ExampleCodec()
-        assertTrue(codec.verify(byteArrayOf(3.toByte())))
+    fun `test verify format success`() {
+        val format = ExampleFormat()
+        assertTrue(format.verify(byteArrayOf(3.toByte())))
     }
 
     @Test
     fun `test verify codec fail`() {
-        val codec = ExampleCodec()
-        assertFalse(codec.verify(byteArrayOf(14.toByte())))
+        val format = ExampleFormat()
+        assertFalse(format.verify(byteArrayOf(14.toByte())))
     }
 
     @Test
-    fun `test decode verify success but invalid format (even-length)`() {
+    fun `test verify format success but invalid format (even-length)`() {
+        val format = ExampleFormat()
         val bytes = byteArrayOf(3.toByte(), 3, 4, 4)
-        assertNull(ExampleSerializer.deserialize(bytes))
+        val result = format.tryDecode(bytes)
+        assertIs<DecodeResult.Failure>(result)
     }
 
     @Test
     fun `test decode success`() {
+        val format = ExampleFormat()
         val bytes = byteArrayOf(8.toByte(), 3, 4, 4, 5, 9, 127, 111, 100)
-        assertEquals(listOf("8", "3-4", "4-5", "9-127", "111-100"), ExampleSerializer.deserialize(bytes))
+        val result = format.tryDecode(bytes)
+        assertIs<DecodeResult.Success<List<String>>>(result)
+
+        val expected = listOf("8", "3-4", "4-5", "9-127", "111-100")
+        val actual = result.value
+        assertEquals(expected, actual)
     }
 
     @Test
@@ -58,17 +68,21 @@ class ExampleCodecTest {
 }
 
 /**
- * Example of how to implement serializer/deserializer and SocketCodec implementation.
- *
+ * An example implementation of [MessageFormat].
  * - The format operates on a list of string.
  * - Valid raw format is a byte array that is prefixed by some 1-digit header number.
  *   which is the size of message % 9
  * - After that number, everything is byte number (-128 to 127).
  * - The byte array has even length (not including the header) and each number is paired.
+ * - We consider the header number (which is the first number in the list)
+ *   as the socket message's "type".
  *
  * Example:
  * - **decoded**: `[3 124-94 9-23 51-32]` (string representation)
  * - **encoded**: `[3 124 94 9 23 51 32]` (assume byte representation)
+ *
+ * **Note**: the decoding logic is implemented on [tryDecode], while the
+ * encoding, or the serialization process is on [ExampleSerializer].
  *
  * **Decoding**:
  * - Drops the header number.
@@ -83,6 +97,46 @@ class ExampleCodecTest {
  * - For each string, split with '-', then ensure each number
  *   is a valid byte. **FAIL: return null**.
  * - Add all bytes to the byte array.
+ */
+class ExampleFormat : MessageFormat<List<String>> {
+    override val name: String = "ExampleFormat"
+
+    override fun verify(data: ByteArray): Boolean {
+        return data.first().toInt() in 0..9
+    }
+
+    override fun tryDecode(data: ByteArray): DecodeResult<List<String>> {
+        val header = data.first()
+        if (header.toInt() !in -127..128) {
+            return DecodeResult.Failure(reason = "Header out of bounds")
+        }
+        val withoutHeader = data.drop(1)
+        if (withoutHeader.size % 2 != 0) {
+            return DecodeResult.Failure(reason = "Payload length is not even")
+        }
+
+        val result = mutableListOf(header.toString())
+
+        val iterator = withoutHeader.iterator()
+        while (iterator.hasNext()) {
+            val b1 = iterator.next()
+            if (!iterator.hasNext()) {
+                return DecodeResult.Failure(reason = "Payload length is even, but missing halfway")
+            }
+            val b2 = iterator.next()
+            result.add("${b1}-${b2}")
+        }
+
+        return DecodeResult.Success(result)
+    }
+
+    override fun materialize(decoded: List<String>): SocketMessage {
+        return ExampleMessage(decoded)
+    }
+}
+
+/**
+ * Serializer implementation for the [ExampleFormat].
  */
 object ExampleSerializer {
     fun serialize(input: List<String>): ByteArray? {
@@ -111,44 +165,14 @@ object ExampleSerializer {
 
         return result.toByteArray()
     }
-
-    fun deserialize(output: ByteArray): List<String>? {
-        val header = output.first()
-        if (header.toInt() !in -127..128) return null
-        val withoutHeader = output.drop(1)
-        if (withoutHeader.size % 2 != 0) return null
-
-        val result = mutableListOf(header.toString())
-
-        val iterator = withoutHeader.iterator()
-        while (iterator.hasNext()) {
-            val b1 = iterator.next()
-            if (!iterator.hasNext()) return null
-            val b2 = iterator.next()
-            result.add("${b1}-${b2}")
-        }
-
-        return result
-    }
 }
 
 /**
- * Example implementation of SocketCodec where most work is delegated to ExampleSerializer.
+ * Example [SocketMessage] implementation based on [ExampleFormat].
  *
- * Only [verify] is the real implementation here.
+ * In this case, the decoded message is wrapped generically.
  */
-class ExampleCodec : SocketCodec<List<String>> {
-    override val name: String = "ExampleCodec"
-
-    override fun verify(data: ByteArray): Boolean {
-        return data.first().toInt() in 0..9
-    }
-
-    override fun tryEncode(input: List<String>): ByteArray? {
-        return ExampleSerializer.serialize(input)
-    }
-
-    override fun tryDecode(output: ByteArray): List<String>? {
-        return ExampleSerializer.deserialize(output)
-    }
+class ExampleMessage(private val payload: List<String>): SocketMessage {
+    override fun type(): String = payload.first()
+    override fun toString(): String = payload.joinToString()
 }

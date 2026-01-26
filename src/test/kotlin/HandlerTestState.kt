@@ -8,7 +8,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import server.core.network.TestConnection
 import server.handler.DefaultHandlerContext
 import server.handler.HandlerContext
-import server.messaging.SocketMessage
+import server.messaging.socket.SocketMessage
 
 /**
  * Utility to build state to test socket message handlers.

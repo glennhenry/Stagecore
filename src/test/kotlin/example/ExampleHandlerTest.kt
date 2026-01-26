@@ -9,8 +9,9 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import server.core.network.TestConnection
 import server.handler.HandlerContext
-import server.messaging.SocketMessage
+import server.messaging.socket.SocketMessage
 import server.handler.SocketMessageHandler
+import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -48,7 +49,7 @@ class ExampleHandlerTest {
         val state = HandlerTestState(
             playerId = playerId,
             playerName = playerName,
-            message = ExampleMessage(payload = "MSG1.EX.hello.world.kotlin.ktor"),
+            message = ExampleMessage2(payload = "MSG1.EX.hello.world.kotlin.ktor"),
             account = PlayerAccount.fake(playerId, playerName),
             services = PlayerServices(),
             connectionScope = CoroutineScope(StandardTestDispatcher())
@@ -72,7 +73,7 @@ class ExampleHandlerTest {
         val state = HandlerTestState(
             playerId = playerId,
             playerName = playerName,
-            message = ExampleMessage(payload = "MSG1.EX.hello.world.kotlin|ktor"),
+            message = ExampleMessage2(payload = "MSG1.EX.hello.world.kotlin|ktor"),
             account = PlayerAccount.fake(playerId, playerName),
             services = PlayerServices(),
             connectionScope = CoroutineScope(StandardTestDispatcher())
@@ -89,17 +90,17 @@ class ExampleHandlerTest {
 }
 
 /**
- * Example of handler that handles ExampleMessage<String>
+ * Example of handler that handles ExampleMessage2<String>
  */
-class ExampleHandler(private val serverContext: ServerContext) : SocketMessageHandler<ExampleMessage> {
+class ExampleHandler(private val serverContext: ServerContext) : SocketMessageHandler<ExampleMessage2> {
     override val name: String = "ExampleHandler"
     override val messageType: String = ""
-    override val expectedMessageClass: Class<out SocketMessage> = ExampleMessage::class.java
+    override val expectedMessageClass = ExampleMessage2::class
 
     /**
      * `with(ctx)` gives developer QoL to access `connection` and `message` simpler.
      */
-    override suspend fun handle(ctx: HandlerContext<ExampleMessage>) = with(ctx) {
+    override suspend fun handle(ctx: HandlerContext<ExampleMessage2>) = with(ctx) {
         // example rejection
         if (message.payload.contains("|")) {
             val messageToSend = "RESPONSE.EX.FAIL"
@@ -127,9 +128,7 @@ class ExampleHandler(private val serverContext: ServerContext) : SocketMessageHa
  * - Second word is message type.
  * - The rest are payload.
  */
-class ExampleMessage(val payload: String) : SocketMessage {
+class ExampleMessage2(val payload: String) : SocketMessage {
     override fun type(): String = "EX"
-    override fun isValid(): Boolean = true
-    override fun isEmpty(): Boolean = false
     override fun toString(): String = payload
 }
