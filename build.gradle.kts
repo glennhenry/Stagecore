@@ -42,6 +42,13 @@ tasks.shadowJar {
     finalizedBy(copyGameFiles, copyRunScripts)
 }
 
+tasks.named<JavaExec>("run") {
+    jvmArgs(
+        "--sun-misc-unsafe-memory-access=allow",
+        "--enable-native-access=ALL-UNNAMED"
+    )
+}
+
 dependencies {
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.server.netty)
