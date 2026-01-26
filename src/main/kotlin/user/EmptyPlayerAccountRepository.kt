@@ -14,6 +14,7 @@ class EmptyPlayerAccountRepository : PlayerAccountRepository {
     override suspend fun getPlayerAccountById(playerId: String): Result<PlayerAccount> = TODO("ONLY TEST")
     override suspend fun getPlayerIdFromName(username: String): Result<String> = TODO("ONLY TEST")
     override suspend fun updatePlayerAccount(playerId: String, account: PlayerAccount): Result<Unit> = TODO("ONLY TEST")
-    override suspend fun updateLastLogin(playerId: String, lastLogin: Long): Result<Unit> = TODO("ONLY TEST")
+    // method called in test
+    override suspend fun updateLastLogin(playerId: String, lastLogin: Long): Result<Unit> = Result.success(Unit)
     override suspend fun verifyCredentials(username: String, password: String): Result<String> = TODO("ONLY TEST")
 }

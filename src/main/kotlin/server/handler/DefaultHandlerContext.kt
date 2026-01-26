@@ -1,7 +1,7 @@
 package server.handler
 
 import server.core.network.Connection
-import server.messaging.SocketMessage
+import server.messaging.socket.SocketMessage
 
 /**
  * Default handler context where send implementation is based on [Connection] object.

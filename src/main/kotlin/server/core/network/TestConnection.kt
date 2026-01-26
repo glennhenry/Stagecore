@@ -1,7 +1,11 @@
 package server.core.network
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Implementation of [Connection] which is used for testing purposes.
@@ -43,6 +47,18 @@ class TestConnection(
 
     fun getOutgoing(): List<ByteArray> {
         return writtenBytes
+    }
+
+    /**
+     * To wait until outgoing is ready (non-empty) for one minute,
+     * delaying every [timeoutInSeconds].
+     */
+    suspend fun awaitOutgoing(timeoutInSeconds: Int = 1) {
+        withContext(Dispatchers.Default.limitedParallelism(1)) {
+            while (getOutgoing().isEmpty()) {
+                delay(timeoutInSeconds.seconds)
+            }
+        }
     }
 
     override suspend fun read(): Pair<Int, ByteArray> {

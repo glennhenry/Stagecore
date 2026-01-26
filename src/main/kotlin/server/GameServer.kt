@@ -11,14 +11,12 @@ import kotlinx.coroutines.*
 import server.core.Server
 import server.core.network.Connection
 import server.core.network.DefaultConnection
-import server.handler.impl.DefaultHandler
 import server.handler.DefaultHandlerContext
 import server.handler.SocketMessageHandler
-import server.messaging.SocketMessage
-import server.messaging.SocketMessageDispatcher
-import server.messaging.format.DefaultMessage
+import server.messaging.format.DecodeResult
 import server.messaging.format.MessageFormat
-import server.messaging.codec.DefaultCodec
+import server.messaging.socket.SocketMessage
+import server.messaging.socket.SocketMessageDispatcher
 import server.tasks.TaskName
 import utils.functions.hexAsciiString
 import utils.functions.safeAsciiString
@@ -31,13 +29,17 @@ data class GameServerConfig(
     val port: Int = SERVER_SOCKET_PORT,
 )
 
-@Untested(
-    "Integration test: although codec, message format, dispatcher, connection, and handler " +
-            "have been tested individually, we need integration test that connects them all. " +
-            "Given arbitrary socket packet (in byte array), it should be decoded, " +
-            "dispatched, and handled correctly."
-)
-class GameServer(private val config: GameServerConfig) : Server {
+/**
+ * Main game server (socket).
+ *
+ * @property config Server host and port configuration.
+ * @property setup Contains necessary registration and setup across context,
+ *                 such as message format and tasks registration.
+ */
+class GameServer(
+    private val config: GameServerConfig,
+    private val setup: (SocketMessageDispatcher, ServerContext) -> Unit
+) : Server {
     override val name: String = "GameServer"
 
     private lateinit var gameServerScope: CoroutineScope
@@ -50,28 +52,7 @@ class GameServer(private val config: GameServerConfig) : Server {
     override suspend fun initialize(scope: CoroutineScope, context: ServerContext) {
         this.gameServerScope = CoroutineScope(scope.coroutineContext + SupervisorJob() + Dispatchers.IO)
         this.serverContext = context
-
-        socketDispatcher.register(DefaultHandler())
-        // REPLACE
-        context.taskDispatcher.registerTask(
-            name = TaskName.DummyName,
-            stopFactory = {},
-            deriveTaskId = { playerId, name, _ ->
-                // RTD-playerId123-unit
-                "${name.code}-$playerId-unit"
-            }
-        )
-        // register codec (serializer, deserializer) and message format
-        // REPLACE
-        val possibleFormats = listOf<MessageFormat<*>>(
-            MessageFormat(
-                codec = DefaultCodec(),
-                messageFactory = { DefaultMessage(it) }
-            ),
-        )
-        possibleFormats.forEach {
-            context.formatRegistry.register(it)
-        }
+        setup(socketDispatcher, context)
     }
 
     override suspend fun start() {
@@ -112,7 +93,7 @@ class GameServer(private val config: GameServerConfig) : Server {
     /**
      * Handle client [Connection] in suspending manner until data is available.
      */
-    private fun handleClient(connection: Connection) {
+    fun handleClient(connection: Connection) {
         connection.connectionScope.launch {
             try {
                 loop@ while (isActive) {
@@ -122,7 +103,7 @@ class GameServer(private val config: GameServerConfig) : Server {
                     serverContext.onlinePlayerRegistry.updateLastActivity(connection.playerId)
 
                     // start handle
-                    var msgType = listOf("[Undetermined]")
+                    var msgType = "[Undetermined]"
                     val elapsed = measureTimeMillis {
                         msgType = handleMessage(connection, data)
                     }
@@ -131,7 +112,7 @@ class GameServer(private val config: GameServerConfig) : Server {
                     Logger.debug {
                         buildString {
                             appendLine("<===== [SOCKET END]")
-                            appendLine("$LOG_INDENT_PREFIX type      : ${msgType.joinToString(", ")}")
+                            appendLine("$LOG_INDENT_PREFIX type      : $msgType")
                             appendLine("$LOG_INDENT_PREFIX playerId  : ${connection.playerId}")
                             appendLine("$LOG_INDENT_PREFIX duration  : ${elapsed}ms")
                             append("====================================================================================================")
@@ -159,31 +140,36 @@ class GameServer(private val config: GameServerConfig) : Server {
     /**
      * Handle message from [Connection] with raw bytes [data] by:
      *
-     * 1. Find codecs that can decode it.
-     * 2. Construct the high-level [SocketMessage] for the data.
-     * 3. Find socket handlers responsible for handling the message.
+     * 1. Identify the message format.
+     * 2. Try to decode the format.
+     * 3. Materialize into a high-level [SocketMessage].
+     * 4. Dispatch to registered message handlers.
      *
      * ```
-     * data -> detectMessageFormat(data) -> codec.tryDecode(data) -> payload (T)
-     * payload (T) -> messageFactory(payload) -> concrete SocketMessage<T>
-     * concrete SocketMessage<T> -> findHandlerFor(socketMessage) -> handlers
-     * handlers.forEach.handle(msg)
+     * bytes
+     *   ↓ (identifyFormat)
+     * formatCandidates
+     *   ↓ (tryDecode)
+     * DecodeResult
+     *   ↓ (materialize)
+     * SocketMessage
+     *   ↓ (findHandlerFor)
+     * handler.handle()
      * ```
      *
-     * - It's possible that for the same data, multiple codecs successfully decoded it.
-     *   In this case, each codec may construct different `SocketMessage`, and all
-     *   different interpretation will be passed to handlers.
-     * - This phenomenon is somewhat vague, whether it's intended or not,
-     *   so whenever it happened, there will be warning.
-     * - Multiple handlers handling the same message is completely normal.
+     * **Note**: By this architecture, it's possible for a single packet to be
+     * successfully decoded by multiple message formats. This situation is
+     * inherently ambiguous. In such cases, the first successful decoding
+     * result is selected, and a warning is logged.
      *
      * @return The various types of message decoded successfully, used merely
      *         to mark the end of socket dispatchment.
      */
-    private suspend fun handleMessage(connection: Connection, data: ByteArray): List<String> {
+    private suspend fun handleMessage(connection: Connection, data: ByteArray): String {
+        // Empty data
         if (data.isEmpty()) {
             Logger.debug { "[SOCKET] Ignored empty byte array from connection=$connection" }
-            return listOf("[Empty data]")
+            return "[Empty data]"
         }
 
         Logger.debug {
@@ -196,64 +182,64 @@ class GameServer(private val config: GameServerConfig) : Server {
             }
         }
 
-        // identify what format this message is
-        val potentialFormats = serverContext.formatRegistry.detectMessageFormat(data)
-        // keep track the right codec that successfully deserialized the message
-        val matchedFormats = mutableListOf<Pair<String, MessageFormat<Any>>>()
+        val matched = mutableListOf<Pair<String, SocketMessage>>()
+        val possibleFormats = serverContext.formatRegistry.identifyFormat(data)
 
-        for (format in potentialFormats) {
+        // Find possible format for this message
+        for (format in possibleFormats) {
             try {
                 @Suppress("UNCHECKED_CAST")
-                // for each potential format, tell its codec to try to decode
-                val deserialized = (format as MessageFormat<Any>).codec.tryDecode(data)
-                if (deserialized == null) {
-                    Logger.debug { "Codec ${format.codec.name} verified successfully but failed to deserialize data, unexpected format mismatch occurred in the middle." }
-                    continue
-                }
+                val result = format.tryDecode(data)
 
-                // if decode succeeded and message is not empty, construct the SocketMessage representation
-                val message = format.messageFactory(deserialized)
-                if (message.isEmpty()) {
-                    Logger.debug { "[SOCKET IGNORE] Ignored empty message from connection=$connection, raw: $message" }
-                    continue
-                }
+                if (result is DecodeResult.Success<*>) {
+                    // Success decoding, convert to SocketMessage
+                    val message = format.materializeAny(result.value)
 
-                // log each decoding result
-                val msgType = message.type()
-                Logger.debug {
-                    buildString {
-                        appendLine("[SOCKET DECODE]")
-                        appendLine("$LOG_INDENT_PREFIX type      : $msgType")
-                        append("$LOG_INDENT_PREFIX codec     : ${format.codec.name}")
+                    Logger.debug {
+                        buildString {
+                            appendLine("[SOCKET DECODE]")
+                            appendLine("$LOG_INDENT_PREFIX type   : ${message.type()}")
+                            append("$LOG_INDENT_PREFIX format : ${format.name}")
+                        }
                     }
-                }
 
-                matchedFormats.add(msgType to format)
-
-                // pass the SocketMessage to handlers
-                socketDispatcher.findHandlerFor(message).forEach { handler ->
-                    @Suppress("UNCHECKED_CAST")
-                    handler as SocketMessageHandler<SocketMessage>
-
-                    val handlerContext = DefaultHandlerContext(connection, connection.playerId, message)
-                    handler.handle(handlerContext)
+                    matched += format.name to message
                 }
             } catch (e: Exception) {
-                Logger.error { "Codec ${format.codec} error during decoding; e: $e" }
-                return listOf("[Decode error]")
+                Logger.error { "Decode error in format ${format.name}; e=$e" }
             }
         }
 
-        if (matchedFormats.size > 1) {
+        // Allow only one interpretation of the message, if there is multiple
+        val (chosenFormat, message) = matched.first()
+
+        if (matched.size > 1) {
             Logger.warn {
                 buildString {
-                    appendLine("Found multiple codec that successfully decoded the same data: ${matchedFormats.joinToString { it.second.codec.name }}")
-                    append("$LOG_INDENT_PREFIX Parsed msg type (in the same order): ${matchedFormats.joinToString { it.first }}")
+                    appendLine(
+                        "Multiple formats decoded the same packet: " +
+                                matched.joinToString { "${it.first}/type=${it.second.type()}" }
+                    )
+                    append("$LOG_INDENT_PREFIX chosen: $chosenFormat/type=${message.type()}")
                 }
             }
         }
 
-        return matchedFormats.map { it.first }
+        // Dispatch message to handler
+        socketDispatcher.findHandlerFor(message).forEach { handler ->
+            @Suppress("UNCHECKED_CAST")
+            handler as SocketMessageHandler<SocketMessage>
+
+            handler.handle(
+                DefaultHandlerContext(
+                    connection = connection,
+                    playerId = connection.playerId,
+                    message = message
+                )
+            )
+        }
+
+        return message.type()
     }
 
     override suspend fun shutdown() {
@@ -262,7 +248,6 @@ class GameServer(private val config: GameServerConfig) : Server {
         serverContext.onlinePlayerRegistry.shutdown()
         serverContext.sessionManager.shutdown()
         serverContext.taskDispatcher.shutdown()
-        socketDispatcher.shutdown()
         gameServerScope.cancel()
     }
 }

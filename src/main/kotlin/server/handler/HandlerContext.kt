@@ -1,8 +1,7 @@
 package server.handler
 
-import annotation.RevisitLater
 import server.core.network.Connection
-import server.messaging.SocketMessage
+import server.messaging.socket.SocketMessage
 
 /**
  * Encapsulate objects and data needed by handlers to handle message.
@@ -11,19 +10,14 @@ import server.messaging.SocketMessage
  * @property message High-level representation of the socket message.
  * @param T Concrete implementation of [SocketMessage] interface.
  */
-@RevisitLater(
-    "We may want to enforce type safety on T, so socket dispatchment" +
-            "rely on shouldHandle() and runtime validation of declared payload type" +
-            "and actual received payload type"
-)
 interface HandlerContext<T : SocketMessage> {
     var playerId: String
     val message: T
 
     /**
-     * Send the client [raw] (non-serialized) bytes.
+     * Send the client [raw] bytes.
      *
-     * If needed, caller must serialize bytes manually. This can be done
+     * Serialization is caller responsibility. This can be done
      * by calling the appropriate serializer utility.
      */
     suspend fun sendRaw(raw: ByteArray, logOutput: Boolean = true, logFull: Boolean = false)

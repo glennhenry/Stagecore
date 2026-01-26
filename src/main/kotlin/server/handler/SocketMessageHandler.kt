@@ -1,54 +1,61 @@
 package server.handler
 
-import annotation.RevisitLater
-import server.messaging.SocketMessage
-import server.messaging.codec.SocketCodec
+import server.messaging.socket.SocketMessage
 import server.messaging.format.MessageFormat
+import kotlin.reflect.KClass
 
 /**
  * Template for a socket message handler.
  *
- * Each handler is expected to:
- * - Declare the message type it handles via [messageType].
- * - Specify the expected [SocketMessage] implementation through its generic parameter `T`.
- *   The [SocketMessage] implementation is produced by a [MessageFormat]
- *   and its associated [SocketCodec].
- *   For example, a JSON-based handler might declare `T` as `JSONMessage`, which
- *   wraps a `Map<String, Any>` and provides helper methods, while implementing
- *   `SocketMessage<Map<String, Any>>`.
+ * A [SocketMessageHandler] processes a specific kind of [SocketMessage] produced
+ * by the message decoding and materialization pipeline.
  *
- * Handler matching behavior:
- * - Incoming [SocketMessage] instances are routed to handlers by the dispatcher.
- * - The default dispatchment logic involves matching handler's [messageType]
+ * Each handler is expected to:
+ * - Declare the logical message type it handles via [messageType].
+ * - Specify the concrete [SocketMessage] implementation it expects through
+ *   the generic parameter [T].
+ *
+ * The [SocketMessage] instance is produced by [MessageFormat.materialize].
+ *
+ * Examples:
+ * - A JSON-based protocol may define a handler with `T = JsonMessage`,
+ *   where `JsonMessage` wraps a `Map<String, Any>` and provides helper accessors.
+ * - A more specific handler may declare `T = LoginRequest`, where
+ *   `LoginRequest` is a strongly typed domain message implementing `SocketMessage`.
+ *
+ * Handler dispatch behavior:
+ * - Incoming [SocketMessage] instances are routed to handlers by a dispatcher.
+ * - By default, dispatch is performed by matching [messageType] against
  *   [SocketMessage.type].
- * - Override [shouldHandle] only if type-based matching is insufficient.
+ * - Override [shouldHandle] when type-based matching is insufficient.
  *
  * **Contract**: All handlers registered under the same [messageType] must expect
  * the same concrete [SocketMessage] implementation (by architecture).
  *
  * @param T The concrete implementation of [SocketMessage] this handler expects.
  */
-@RevisitLater(
-    "We may want to enforce type safety on T, so socket dispatchment" +
-            "rely on shouldHandle() and runtime validation of declared payload type" +
-            "and actual received payload type"
-)
 interface SocketMessageHandler<T : SocketMessage> {
     /**
-     * Human-readable name for the handler, mainly used for logging and debugging.
+     * Human-readable name of the handler for logging and debugging.
      */
     val name: String
 
     /**
-     * Message type or identifier that this handler is responsible for.
+     * Logical message type or identifier that this handler is responsible for.
+     *
+     * This value is compared against [SocketMessage.type] during dispatch.
+     *
+     * **Important**: all socket message's type should be different, regardless
+     * when they are different [SocketMessage] implementation. This is because
+     * dispatchment logic solely rely on type.
      */
     val messageType: String
 
     /**
      * Concrete message class this handler expects (which same as [T]).
-     * Use the syntax `classname::class.java`.
+     * Use the syntax `classname::class`.
      */
-    val expectedMessageClass: Class<out SocketMessage>
+    val expectedMessageClass: KClass<T>
 
     /**
      * Determines whether this handler should process the given [message].
@@ -64,10 +71,11 @@ interface SocketMessageHandler<T : SocketMessage> {
     }
 
     /**
-     * Handles the socket message.
+     * Handles an incoming socket message.
      *
-     * @param ctx The handler context, containing the message, player ID,
-     * and [HandlerContext.sendRaw] method for sending responses.
+     * @param ctx The handler context, containing the decoded message,
+     * connection metadata (such as player ID), and utilities such as
+     * [HandlerContext.sendRaw] for sending responses.
      */
     suspend fun handle(ctx: HandlerContext<T>)
 }

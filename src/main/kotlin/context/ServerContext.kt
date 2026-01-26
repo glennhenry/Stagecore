@@ -28,6 +28,9 @@ import ws.WebSocketManager
  * @property formatRegistry Track the known message format and registered codecs
  *                           for network messages.
  * @property taskDispatcher Provide API to start and stop server-sided task.
+ * @property commandDispatcher Tracks and executes server commands.
+ * @property wsManager Manages client websocket connections.
+ * @property services Container for server services instance.
  */
 data class ServerContext(
     val db: Database,
