@@ -1,6 +1,5 @@
 package server.messaging.socket
 
-import server.messaging.socket.SocketMessage
 import server.messaging.format.DefaultFormat
 
 /**

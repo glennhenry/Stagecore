@@ -9,7 +9,7 @@ import kotlin.test.*
 /**
  * Demonstrate an example to test message format.
  */
-class ExampleCodecTest {
+class ExampleFormatTest {
     @Test
     fun `test verify format success`() {
         val format = ExampleFormat()
