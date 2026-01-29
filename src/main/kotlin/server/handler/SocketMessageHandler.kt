@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
  * Each handler is expected to:
  * - Declare the logical message type it handles via [messageType].
  * - Specify the concrete [SocketMessage] implementation it expects through
- *   the generic parameter [T].
+ *   the generic parameter [T] and [expectedMessageClass].
  *
  * The [SocketMessage] instance is produced by [MessageFormat.materialize].
  *
@@ -25,12 +25,32 @@ import kotlin.reflect.KClass
  *
  * Handler dispatch behavior:
  * - Incoming [SocketMessage] instances are routed to handlers by a dispatcher.
- * - By default, dispatch is performed by matching [messageType] against
- *   [SocketMessage.type].
- * - Override [shouldHandle] when type-based matching is insufficient.
+ * - Dispatch is performed by matching [messageType] against
+ *   [SocketMessage.type] (fast pre-filtering).
+ * - Then, the [shouldHandleUnsafe] will be called for each matched handlers
+ *   which verifies that the message is compatible with the handler’s expected
+ *   message class.
  *
- * **Contract**: All handlers registered under the same [messageType] must expect
+ * Handlers may override [shouldHandle] to apply additional filtering logic.
+ *
+ * **Contract**:
+ * - All handlers registered under the same [messageType] must expect
  * the same concrete [SocketMessage] implementation (by architecture).
+ * - The dispatcher guarantees that [handle] is only invoked when the runtime
+ * message instance is compatible with [T].
+ * - The unchecked cast required to bridge from [SocketMessage] to [T] is
+ * centralized in [handleUnsafe].
+ *
+ * The detailed process:
+ * ```
+ * shouldHandleUnsafe
+ *   ↓
+ * handleUnsafe
+ *   ↓
+ * shouldHandle
+ *   ↓
+ * handle
+ * ```
  *
  * @param T The concrete implementation of [SocketMessage] this handler expects.
  */
@@ -47,7 +67,7 @@ interface SocketMessageHandler<T : SocketMessage> {
      *
      * **Important**: all socket message's type should be different, regardless
      * when they are different [SocketMessage] implementation. This is because
-     * dispatchment logic solely rely on type.
+     * dispatchment logic rely on type.
      */
     val messageType: String
 
@@ -58,20 +78,54 @@ interface SocketMessageHandler<T : SocketMessage> {
     val expectedMessageClass: KClass<T>
 
     /**
-     * Determines whether this handler should process the given [message].
+     * Dispatcher-facing predicate.
      *
-     * Default implementation compares the message's type with [messageType].
-     * Handler may override this behavior if unsuitable or insufficient.
+     * Determines whether this handler is eligible to process the given
+     * [SocketMessage] instance.
      *
-     * @param message The socket message to evaluate.
-     * @return `true` if this handler should handle the message; otherwise `false`.
+     * The default implementation checks:
+     * - [messageType] matches [SocketMessage.type], and
+     * - the message is an instance of [expectedMessageClass].
+     *
+     * **Note**: This method is used by the dispatcher and shouldn't be called
+     * directly. It shouldn't be overridden either.
      */
-    fun shouldHandle(message: T): Boolean {
-        return message.type() == messageType
+    fun shouldHandleUnsafe(message: SocketMessage): Boolean =
+        messageType == message.type() &&
+                expectedMessageClass.isInstance(message)
+
+    /**
+     * Handler-facing predicate.
+     *
+     * With [shouldHandleUnsafe] being called first, it is guaranteed
+     * that the message has been proven (at runtime) to be compatible with [T].
+     *
+     * By default, this is implemented to always return `true` since [messageType]
+     * and the message class is already compared in [shouldHandleUnsafe].
+     * Handlers may override this method to apply additional domain-specific filtering.
+     */
+    fun shouldHandle(message: T): Boolean = true
+
+    /**
+     * Runtime bridge between untyped dispatch and type-safe handler logic.
+     */
+    @Suppress("UNCHECKED_CAST")
+    suspend fun handleUnsafe(ctx: HandlerContext<SocketMessage>) {
+        val msg = ctx.message
+        if (!expectedMessageClass.isInstance(msg)) return
+
+        // important cast to convert the generic SocketMessage into specific T
+        val typedCtx = ctx as HandlerContext<T>
+        if (!shouldHandle(typedCtx.message)) return
+
+        handle(typedCtx)
     }
 
     /**
      * Handles an incoming socket message.
+     *
+     * This method is only invoked after dispatch invariants have been
+     * validated by [handleUnsafe].
      *
      * @param ctx The handler context, containing the decoded message,
      * connection metadata (such as player ID), and utilities such as

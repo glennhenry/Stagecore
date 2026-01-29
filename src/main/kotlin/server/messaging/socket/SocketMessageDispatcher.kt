@@ -52,26 +52,23 @@ class SocketMessageDispatcher {
      * Resolve handlers responsible for processing the given [SocketMessage].
      *
      * Dispatch strategy:
-     * - Primary: match handlers by [SocketMessageHandler.messageType].
-     * - Secondary (fallback): invoke [SocketMessageHandler.shouldHandle] for custom matching.
-     * - Final fallback: use [DefaultHandler] when no handler matches.
+     * - Primary: Fast matching by [SocketMessageHandler.messageType].
+     * - Secondary: invoke [SocketMessageHandler.shouldHandleUnsafe]
+     *   for each handler with same message type.
+     * - Fallback: use [DefaultHandler] when no handler matches.
      *
      * @return A non-empty list of handlers. If no handler matches,
      *         a list containing only [DefaultHandler] is returned.
      */
-    @Suppress("UNCHECKED_CAST")
-    fun findHandlerFor(msg: SocketMessage): List<SocketMessageHandler<out SocketMessage>> {
-        val byType = handlersByType[msg.type()]
-        val selected = when {
-            !byType.isNullOrEmpty() -> byType
-            else -> handlers.filter { handler ->
-                (handler as SocketMessageHandler<SocketMessage>).shouldHandle(msg)
-            }
-        }.ifEmpty { listOf(defaultHandler) }
+    fun findHandlerFor(msg: SocketMessage): List<SocketMessageHandler<*>> {
+        val selected = handlersByType[msg.type()]
+            .orEmpty()
+            .filter { handler -> handler.shouldHandleUnsafe(msg) }
+            .ifEmpty { listOf(defaultHandler) }
 
         logDispatchment(msg, selected)
 
-        return selected as List<SocketMessageHandler<SocketMessage>>
+        return selected
     }
 
     private fun logDispatchment(msg: SocketMessage, selected: List<SocketMessageHandler<*>>) {

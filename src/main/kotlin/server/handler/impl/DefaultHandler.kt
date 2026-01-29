@@ -14,6 +14,8 @@ class DefaultHandler : SocketMessageHandler<SocketMessage> {
     override val messageType: String = "Default"
     override val expectedMessageClass: KClass<SocketMessage> = SocketMessage::class
 
+    override fun shouldHandle(message: SocketMessage): Boolean = true
+
     override suspend fun handle(ctx: HandlerContext<SocketMessage>) = with(ctx) {
         Logger.warn { "No handler registered/implemented for type=${message.type()}" }
     }

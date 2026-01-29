@@ -2,7 +2,6 @@ package server
 
 import SERVER_ADDRESS
 import SERVER_SOCKET_PORT
-import annotation.Untested
 import context.ServerContext
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
@@ -12,12 +11,9 @@ import server.core.Server
 import server.core.network.Connection
 import server.core.network.DefaultConnection
 import server.handler.DefaultHandlerContext
-import server.handler.SocketMessageHandler
 import server.messaging.format.DecodeResult
-import server.messaging.format.MessageFormat
 import server.messaging.socket.SocketMessage
 import server.messaging.socket.SocketMessageDispatcher
-import server.tasks.TaskName
 import utils.functions.hexAsciiString
 import utils.functions.safeAsciiString
 import utils.logging.Logger
@@ -227,16 +223,13 @@ class GameServer(
 
         // Dispatch message to handler
         socketDispatcher.findHandlerFor(message).forEach { handler ->
-            @Suppress("UNCHECKED_CAST")
-            handler as SocketMessageHandler<SocketMessage>
-
-            handler.handle(
-                DefaultHandlerContext(
-                    connection = connection,
-                    playerId = connection.playerId,
-                    message = message
-                )
+            val context = DefaultHandlerContext(
+                connection = connection,
+                playerId = connection.playerId,
+                message = message
             )
+
+            handler.handleUnsafe(context)
         }
 
         return message.type()

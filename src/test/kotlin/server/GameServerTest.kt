@@ -259,12 +259,12 @@ class Handler5 : SocketMessageHandler<ExMsg3> {
     }
 }
 
-class Handler6 : SocketMessageHandler<ExMsg3> {
+class Handler6 : SocketMessageHandler<ExMsg5> {
     override val name: String = "Handler6"
     override val messageType: String = "type2"
-    override val expectedMessageClass: KClass<ExMsg3> = ExMsg3::class
+    override val expectedMessageClass: KClass<ExMsg5> = ExMsg5::class
 
-    override suspend fun handle(ctx: HandlerContext<ExMsg3>) {
+    override suspend fun handle(ctx: HandlerContext<ExMsg5>) {
         ctx.sendRaw(byteArrayOf(6, 6, 6))
     }
 }
