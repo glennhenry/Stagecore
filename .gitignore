@@ -3,6 +3,9 @@
 .logs/
 .telemetry/
 deploy/
+static/*
+!static/devtools/
+!static/devtools/**
 
 .gradle
 build/
