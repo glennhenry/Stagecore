@@ -33,13 +33,8 @@ val copyGameFiles by tasks.registering(Copy::class) {
     into("deploy/static")
 }
 
-val copyRunScripts by tasks.registering(Copy::class) {
-    from("autorun.bat", "autorun.sh")
-    into("deploy")
-}
-
 tasks.shadowJar {
-    finalizedBy(copyGameFiles, copyRunScripts)
+    finalizedBy(copyGameFiles)
 }
 
 tasks.named<JavaExec>("run") {

@@ -2,6 +2,14 @@
 
 Kotlin Ktor game server template with ready to write docs website.
 
+```
+Server emulator for X, developed by X, closed on X.
+
+*This project tries to reconstruct the server-side behavior. Client files and assets are not included; you must supply your own data. This project is not official and is not associated with the original creators.*
+```
+
+# Server Manual
+
 ## Requirements
 
 - **Java 25+**
@@ -19,11 +27,11 @@ To run the server, ensure MongoDB is running on (default `mongodb://localhost:27
 - File and API server runs on `127.0.0.1:8080`
 - Socket server runs on `127.0.0.1:7777`
 
-You can also run the server by executing the script `dev.bat/sh` or via IntelliJ IDE run plugin.
+You can also run the server from IntelliJ IDE run plugin.
 
 ## Build
 
-To build the server, simply run the `build.bat/sh` script. Output will be in `deploy/`. Run the deployment server using `java -jar changeme.jar` or simply execute the script `autorun.bat/sh`.
+To build the server, simply run the `build.bat/sh` script. Output will be in `deploy/`. Run the deployment server using `java -jar changeme.jar`.
 
 For manual build:
 
@@ -99,8 +107,6 @@ description: example
 
 An external web-based developer toolkit that provides a user interface for monitoring and interacting with the server.
 
-- Commands: The server offers users the ability to send commands to the server for monitoring and to control its behavior.
-
 See `DevTools.md` for details.
 
 ## Structure
@@ -168,7 +174,3 @@ See `DevTools.md` for details.
   - server monitoring
   - ability to execute command from API
 - rate limiter, flood anticipator
-
-# Credits
-
-- favicon: https://favicon.io/emoji-favicons/skull/

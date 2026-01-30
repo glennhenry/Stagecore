@@ -1,1 +1,0 @@
-start "changeme" cmd /k ".\gradlew.bat run"
