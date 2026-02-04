@@ -14,7 +14,7 @@ import server.handler.DefaultHandlerContext
 import server.messaging.format.DecodeResult
 import server.messaging.socket.SocketMessage
 import server.messaging.socket.SocketMessageDispatcher
-import utils.functions.hexAsciiString
+import utils.functions.hexString
 import utils.functions.safeAsciiString
 import utils.logging.Logger
 import utils.logging.Logger.LOG_INDENT_PREFIX
@@ -110,6 +110,9 @@ class GameServer(
                             appendLine("<===== [SOCKET END]")
                             appendLine("$LOG_INDENT_PREFIX type      : $msgType")
                             appendLine("$LOG_INDENT_PREFIX playerId  : ${connection.playerId}")
+                            if (connection.playerId == "[Undetermined]") {
+                                appendLine("$LOG_INDENT_PREFIX address   : ${connection.remoteAddress}")
+                            }
                             appendLine("$LOG_INDENT_PREFIX duration  : ${elapsed}ms")
                             append("====================================================================================================")
                         }
@@ -174,7 +177,7 @@ class GameServer(
                 appendLine("$LOG_INDENT_PREFIX playerId  : ${connection.playerId}")
                 appendLine("$LOG_INDENT_PREFIX bytes     : ${data.size}")
                 appendLine("$LOG_INDENT_PREFIX raw       : ${data.safeAsciiString()}")
-                append("$LOG_INDENT_PREFIX raw (hex) : ${data.hexAsciiString()}")
+                append("$LOG_INDENT_PREFIX raw (hex) : ${data.hexString()}")
             }
         }
 

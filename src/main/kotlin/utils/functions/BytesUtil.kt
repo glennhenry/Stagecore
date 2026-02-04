@@ -14,11 +14,6 @@ fun ByteArray.safeAsciiString(): String {
     }.joinToString("")
 }
 
-fun ByteArray.hexAsciiString(): String {
-    return this.joinToString("") {
-        if (it in 32..126)
-            it.toInt().toChar().toString()
-        else
-            "[0x%02X]".format(it)
-    }
+fun ByteArray.hexString(): String {
+    return joinToString(" ") { "%02X".format(it.toInt() and 0xFF) }
 }
