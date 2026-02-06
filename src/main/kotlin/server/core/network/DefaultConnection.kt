@@ -7,6 +7,7 @@ import io.ktor.utils.io.writeFully
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import utils.functions.hexString
+import utils.functions.safeAsciiString
 import utils.logging.Logger
 import utils.logging.Logger.LOG_INDENT_PREFIX
 
@@ -51,6 +52,7 @@ class DefaultConnection(
                 Logger.debug(logFull = logFull) {
                     buildString {
                         appendLine("[SOCKET SEND]")
+                        appendLine("$LOG_INDENT_PREFIX raw       : ${input.safeAsciiString()}")
                         append("$LOG_INDENT_PREFIX raw (hex) : ${input.hexString()}")
                     }
                 }
