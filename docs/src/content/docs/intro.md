@@ -4,4 +4,8 @@ slug: index
 description: Intro
 ---
 
-Intro page
+Documentation about X.
+
+![Gameplay](../../assets/Stagecore.png)
+
+See [flow](./flow).

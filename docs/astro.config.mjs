@@ -8,8 +8,8 @@ import { fontHeadTags } from "./src/assets/headlinks.js";
 
 // https://astro.build/config
 export default defineConfig({
-  // site: "",
-  base: "docs/", // REPLACE if needed
+  // site: "", // deployment URL
+  base: "docs/",
   markdown: {
     rehypePlugins: [[rehypeExternalLinks, externalLinkIcon]],
   },
@@ -17,7 +17,7 @@ export default defineConfig({
     starlight({
       head: [...fontHeadTags],
       plugins: [starlightThemeObsidian()],
-      favicon: "favicon.svg",
+      favicon: "favicon.ico",
       customCss: ["./src/assets/custom.css"],
       tableOfContents: { minHeadingLevel: 2, maxHeadingLevel: 6 },
       credits: true,
@@ -29,26 +29,19 @@ export default defineConfig({
       },
       editLink: {
         // REPLACE
-        baseUrl: "https://github.com/glennhenry/ktor-game-server-template/edit/main/",
+        baseUrl: "https://github.com/glennhenry/Stagecore/edit/main/",
       },
       social: [
         {
           icon: "github",
           label: "GitHub",
           // REPLACE
-          href: "https://github.com/glennhenry/ktor-game-server-template",
+          href: "https://github.com/glennhenry/Stagecore",
         },
       ],
       sidebar: [
         { label: "Intro", slug: "index" },
-        {
-          label: "Guides",
-          items: [
-            { label: "Example Guide 1", slug: "guides/example" },
-            { label: "Example Guide 2", slug: "guides/example2" },
-            { label: "Example Guide 3", slug: "guides/example3" },
-          ],
-        },
+        { label: "Flow", slug: "flow" },
       ],
     }),
   ],

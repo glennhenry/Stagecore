@@ -8,6 +8,20 @@ Server emulator for X, developed by X, closed on X.
 *This project tries to reconstruct the server-side behavior. Client files and assets are not included; you must supply your own data. This project is not official and is not associated with the original creators.*
 ```
 
+## Editlist
+
+Server files to edit:
+- ...
+
+Docs files to edit:
+- `docs/package.json` + `npm install`
+- `docs/astro.config.mjs`
+- `docs/src/components/Giscus.astro`
+- `docs/src/content/docs/intro.md`
+- `docs/src/content/docs/flow.md`
+- `docs/src/assets/` (for image in `intro.md`)
+- `docs/public/favicon.ico` (for docs' favicon)
+
 # Server Manual
 
 ## Requirements

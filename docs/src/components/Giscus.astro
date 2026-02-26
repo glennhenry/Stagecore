@@ -9,10 +9,13 @@
   function loadGiscus(theme) {
     const script = document.createElement("script");
     script.src = "https://giscus.app/client.js";
-    script.setAttribute("data-repo", "glennhenry/sl-obsidian-starter");
-    script.setAttribute("data-repo-id", "R_kgDOO8Zl2g");
-    script.setAttribute("data-category", "Example");
-    script.setAttribute("data-category-id", "DIC_kwDOO8Zl2s4CrkjY");
+    /* REPLACE CHANGEME: create discussion on github to enable comment (code has to be posted on github) or just empty it if not using github */
+    script.setAttribute("data-repo", "glennhenry/Stagecore");
+    /* REPLACE CHANGEME: Go to https://giscus.app/ to obtain repo id */
+    script.setAttribute("data-repo-id", "R_kgDOQJ63CA");
+    /* REPLACE CHANGEME: Create category name and obtain the category id */
+    script.setAttribute("data-category", "Giscus");
+    script.setAttribute("data-category-id", "DIC_kwDOQJ63CM4C3Pfx");
     script.setAttribute("data-mapping", "pathname");
     script.setAttribute("data-strict", "0");
     script.setAttribute("data-reactions-enabled", "1");
